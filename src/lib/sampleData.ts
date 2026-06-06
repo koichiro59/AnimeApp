@@ -49,6 +49,9 @@ export const sampleCharacters: Character[] = [
         age: 15,
         description: '巨人に復讐を誓う少年。強い意志と自由への渇望を持つ。',
         imageUrl: 'https://placehold.co/200x280?text=Eren',
+        abilities: ['巨人化', '始祖の巨人', '進撃の巨人'],
+        personality: '熱血で意志が強く、自由のためなら何でもする。時に暴走することも。',
+        firstAppearance: '第1話「二千年後の君へ」',
     },
     {
         id: 2,
@@ -58,6 +61,9 @@ export const sampleCharacters: Character[] = [
         age: 15,
         description: 'エレンを守るために戦う天才兵士。冷静沈着で戦闘力は随一。',
         imageUrl: 'https://placehold.co/200x280?text=Mikasa',
+        abilities: ['アッカーマンの力', '立体機動装置の達人'],
+        personality: '冷静で寡黙。エレンへの深い愛情を持つ。',
+        firstAppearance: '第1話「二千年後の君へ」',
     },
     {
         id: 3,
@@ -67,6 +73,9 @@ export const sampleCharacters: Character[] = [
         age: 13,
         description: '鬼と化した妹を救うため鬼殺隊に入隊した優しき少年。',
         imageUrl: 'https://placehold.co/200x280?text=Tanjiro',
+        abilities: ['水の呼吸', 'ヒノカミ神楽', '嗅覚'],
+        personality: '誰に対しても優しく、鬼にすら同情できる心を持つ。',
+        firstAppearance: '第1話「残酷」',
     },
     {
         id: 4,
@@ -76,6 +85,9 @@ export const sampleCharacters: Character[] = [
         age: 12,
         description: '鬼になりながらも人を襲わない炭治郎の妹。',
         imageUrl: 'https://placehold.co/200x280?text=Nezuko',
+        abilities: ['血鬼術・爆血', '身体の縮小・拡大'],
+        personality: '無口だが家族思いで勇敢。人間への優しさを失っていない。',
+        firstAppearance: '第1話「残酷」',
     },
     {
         id: 5,
@@ -85,5 +97,8 @@ export const sampleCharacters: Character[] = [
         age: null,
         description: '凄腕スパイ。任務のため偽の家族を作ることになる。',
         imageUrl: 'https://placehold.co/200x280?text=Loid',
+        abilities: ['変装', '格闘術', '情報収集'],
+        personality: '冷静沈着で頭脳明晰。任務に忠実だが家族への愛情が芽生えていく。',
+        firstAppearance: '第1話「オペレーション〈梟〉」',
     },
 ]
