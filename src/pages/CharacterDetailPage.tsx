@@ -5,13 +5,6 @@ import { getCharacterImageCache } from '../lib/imageCache'
 import type { Character } from '../types/character'
 import type { Anime } from '../types/anime'
 
-const roleColors: Record<string, string> = {
-  '主人公': 'bg-blue-100 text-blue-700',
-  'ヒロイン': 'bg-pink-100 text-pink-700',
-  '敵': 'bg-red-100 text-red-700',
-  'サブキャラ': 'bg-gray-100 text-gray-700',
-}
-
 export const CharacterDetailPage = () => {
   const { id } = useParams()
   const [character, setCharacter] = useState<Character | null>(null)
