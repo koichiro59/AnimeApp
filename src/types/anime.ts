@@ -1,9 +1,12 @@
 export type Anime = {
-    id: number
+    anime_id: string
     title: string
-    genre: string[]
-    year: number
-    synopsis: string
-    imageUrl: string
-    rating: number
+    broadcast_season: string | null
+    production_id: string | null
+    type: string | null
+    episodes: number | null
+    author: string | null
+    synopsis: string | null
+    anilist_id: number | null
+    genres?: string[]
 }
