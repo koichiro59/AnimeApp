@@ -2,23 +2,29 @@ import { supabase } from './supabase'
 import type { Anime } from '../types/anime'
 import type { Character } from '../types/character'
 
-// アニメ一覧をジャンル付きで取得
-export const fetchAnimes = async (): Promise<Anime[]> => {
-    const { data, error } = await supabase
+// アニメ一覧をページネーション付きで取得
+export const fetchAnimes = async (page: number = 1, perPage: number = 12): Promise<{ animes: Anime[], total: number }> => {
+    const from = (page - 1) * perPage
+    const to = from + perPage - 1
+
+    const { data, error, count } = await supabase
         .from('animes')
         .select(`
       *,
       anime_genres (
         genres ( name )
       )
-    `)
+    `, { count: 'exact' })
+        .range(from, to)
 
     if (error) throw error
 
-    return data.map((anime: any) => ({
+    const animes = data.map((anime: any) => ({
         ...anime,
         genres: anime.anime_genres.map((ag: any) => ag.genres.name),
     }))
+
+    return { animes, total: count ?? 0 }
 }
 
 // アニメ詳細を1件取得
