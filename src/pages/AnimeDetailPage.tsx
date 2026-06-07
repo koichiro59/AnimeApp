@@ -34,7 +34,6 @@ export const AnimeDetailPage = () => {
       } else {
         setCharImageMap({ ...cached })
       }
-
       setLoading(false)
     }
     load()
@@ -42,16 +41,16 @@ export const AnimeDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500">読み込み中...</p>
+      <div className="flex items-center justify-center py-32">
+        <p className="text-gray-400">読み込み中...</p>
       </div>
     )
   }
 
   if (!anime) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500">アニメが見つかりませんでした。</p>
+      <div className="flex items-center justify-center py-32">
+        <p className="text-gray-400">アニメが見つかりませんでした。</p>
       </div>
     )
   }
@@ -59,39 +58,73 @@ export const AnimeDetailPage = () => {
   const animeImageUrl = getAnimeImageCache()[anime.anilist_id ?? 0] ?? ''
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <Link to="/" className="text-indigo-600 hover:underline text-sm mb-6 inline-block">
-        ← 一覧に戻る
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      <Link to="/" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-pink-500 transition-colors mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        一覧に戻る
       </Link>
-      <div className="bg-white rounded-xl shadow-md overflow-hidden max-w-2xl mx-auto mb-8">
-        {animeImageUrl ? (
-          <img src={animeImageUrl} alt={anime.title} className="w-full h-64 object-cover" />
-        ) : (
-          <div className="w-full h-64 bg-gray-200 animate-pulse" />
-        )}
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">{anime.title}</h1>
-          <p className="text-sm text-gray-500 mb-3">{anime.broadcast_season}</p>
-          <div className="flex flex-wrap gap-1 mb-4">
-            {anime.genres?.map((g) => (
-              <span key={g} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                {g}
-              </span>
-            ))}
+
+      <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 mb-8">
+        <div className="md:flex">
+          <div className="md:w-64 flex-shrink-0">
+            {animeImageUrl ? (
+              <img src={animeImageUrl} alt={anime.title} className="w-full h-80 md:h-full object-cover" />
+            ) : (
+              <div className="w-full h-80 bg-gray-100 animate-pulse" />
+            )}
           </div>
-          <p className="text-gray-600 leading-relaxed mb-4">{anime.synopsis}</p>
-          <div className="text-sm text-gray-500 space-y-1">
-            {anime.author && <p>原作：{anime.author}</p>}
-            {anime.type && <p>種別：{anime.type}</p>}
-            {anime.episodes && <p>話数：{anime.episodes}話</p>}
+          <div className="p-6 flex-1">
+            <div className="flex items-start justify-between mb-3">
+              <h1 className="text-xl font-semibold text-gray-800">{anime.title}</h1>
+              {anime.type && (
+                <span className="text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded-full border border-pink-100 ml-3 flex-shrink-0">
+                  {anime.type}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-1 mb-4">
+              {anime.genres?.map((g) => (
+                <span key={g} className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full border border-purple-100">
+                  {g}
+                </span>
+              ))}
+            </div>
+
+            {anime.synopsis && (
+              <p className="text-sm text-gray-600 leading-relaxed" style={{ marginBottom: '28px' }}>{anime.synopsis}</p>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              {anime.broadcast_season && (
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">放送時期</p>
+                  <p className="text-sm font-medium text-gray-700">{anime.broadcast_season}</p>
+                </div>
+              )}
+              {anime.author && (
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">原作者</p>
+                  <p className="text-sm font-medium text-gray-700">{anime.author}</p>
+                </div>
+              )}
+              {anime.episodes && (
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">話数</p>
+                  <p className="text-sm font-medium text-gray-700">{anime.episodes}話</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {characters.length > 0 && (
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">登場キャラクター</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-700 mb-4">登場キャラクター</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {characters.map((character) => (
               <CharacterCard
                 key={character.character_id}
