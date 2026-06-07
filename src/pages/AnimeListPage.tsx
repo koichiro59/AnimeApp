@@ -5,6 +5,8 @@ import { setAnimeImageCache, getAnimeImageCache } from '../lib/imageCache'
 import type { Anime } from '../types/anime'
 import { AnimeCard } from '../components/anime/AnimeCard'
 
+const PER_PAGE = 12
+
 const genreTags = [
   { label: 'アクション', color: 'bg-pink-50 text-pink-700 border-pink-200' },
   { label: 'ファンタジー', color: 'bg-purple-50 text-purple-700 border-purple-200' },
@@ -16,25 +18,34 @@ export const AnimeListPage = () => {
   const [animes, setAnimes] = useState<Anime[]>([])
   const [imageMap, setImageMap] = useState<Record<number, string>>({})
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+
+  const totalPages = Math.ceil(total / PER_PAGE)
 
   useEffect(() => {
     const load = async () => {
-      const data = await fetchAnimes()
+      setLoading(true)
+      const { animes: data, total } = await fetchAnimes(page, PER_PAGE)
       setAnimes(data)
+      setTotal(total)
 
       const cached = getAnimeImageCache()
-      if (Object.keys(cached).length > 0) {
-        setImageMap(cached)
+      const uncachedIds = data
+        .map((a) => a.anilist_id)
+        .filter((id): id is number => id !== null && !cached[id])
+
+      if (uncachedIds.length > 0) {
+        const images = await fetchAnimeImages(uncachedIds)
+        setAnimeImageCache({ ...cached, ...images })
+        setImageMap({ ...cached, ...images })
       } else {
-        const ids = data.map((a) => a.anilist_id).filter(Boolean) as number[]
-        const images = await fetchAnimeImages(ids)
-        setAnimeImageCache(images)
-        setImageMap(images)
+        setImageMap({ ...cached })
       }
       setLoading(false)
     }
     load()
-  }, [])
+  }, [page])
 
   return (
     <div>
@@ -47,10 +58,7 @@ export const AnimeListPage = () => {
         </p>
         <div className="flex justify-center gap-2 flex-wrap">
           {genreTags.map((tag) => (
-            <span
-              key={tag.label}
-              className={`text-xs px-3 py-1 rounded-full border ${tag.color}`}
-            >
+            <span key={tag.label} className={`text-xs px-3 py-1 rounded-full border ${tag.color}`}>
               {tag.label}
             </span>
           ))}
@@ -58,13 +66,17 @@ export const AnimeListPage = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-gray-700">アニメ一覧</h2>
+          <p className="text-sm text-gray-400">{total}件</p>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <p className="text-gray-400">読み込み中...</p>
           </div>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-gray-700 mb-5">アニメ一覧</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {animes.map((anime) => (
                 <AnimeCard
@@ -74,6 +86,50 @@ export const AnimeListPage = () => {
                 />
               ))}
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  前へ
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                  .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...')
+                    acc.push(p)
+                    return acc
+                  }, [])
+                  .map((p, idx) =>
+                    p === '...' ? (
+                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p as number)}
+                        className={`w-9 h-9 text-sm rounded-lg border transition-colors ${page === p
+                            ? 'bg-pink-50 border-pink-200 text-pink-600 font-medium'
+                            : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  次へ
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
