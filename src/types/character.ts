@@ -1,9 +1,11 @@
 export type Character = {
-    id: number
-    animeId: number
-    name: string
-    role: '主人公' | 'ヒロイン' | '敵' | 'サブキャラ'
-    age: number | null
-    description: string
-    imageUrl: string
+  character_id: string
+  anime_id: string
+  name: string
+  description: string | null
+  age: number | null
+  gender: string | null
+  height: number | null
+  weight: number | null
+  anilist_id: number | null
 }
