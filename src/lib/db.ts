@@ -70,3 +70,18 @@ export const fetchCharacterById = async (characterId: string): Promise<Character
     if (error) throw error
     return data
 }
+
+// キャラクター一覧をページネーション付きで取得
+export const fetchCharacters = async (page: number = 1, perPage: number = 12): Promise<{ characters: Character[], total: number }> => {
+    const from = (page - 1) * perPage
+    const to = from + perPage - 1
+
+    const { data, error, count } = await supabase
+        .from('characters')
+        .select('*', { count: 'exact' })
+        .range(from, to)
+
+    if (error) throw error
+
+    return { characters: data, total: count ?? 0 }
+}

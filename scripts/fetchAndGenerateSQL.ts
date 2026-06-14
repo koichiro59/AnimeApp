@@ -161,6 +161,70 @@ const PRODUCTION_MAP: Record<string, string> = {
     'East Fish Studio': 'East Fish Studio',
     'BLADE': 'BLADE',       // 公式社名が英語（Wikipedia確認済み）
     'Nomad': 'ノーマッド',  // Wikipedia・英語Wikipedia確認済み
+
+    // 2024-2026取得分で追加推奨
+
+    'Shuka': '朱夏',
+    'A.C.G.T.': 'A.C.G.T',
+    'BELLNOX FILMS': 'ベルノックスフィルムズ',
+    'GA-CREW': 'GA-CREW',
+    'Ashi Productions': '葦プロダクション',
+    'HORNETS': 'HORNETS',
+    'Qzil.la': 'Qzil.la',
+    'TROYCA': 'トロイカ',
+    'Asread': 'アスリード',
+    'Ascension': 'Ascension',
+    'PINE JAM': 'PINE JAM',
+    'diomedéa': 'ディオメディア',
+    'Seven': 'セブン',
+    'Gift-o’-Animation': 'Gift-o’-Animation',
+    'Toon Harbor Works': 'Toon Harbor Works',
+    '8-bit': 'エイトビット',
+    'Actas': 'アクタス',
+    'CONNECT': 'CONNECT',
+    'ZEXCS': 'ゼクシズ',
+    'CUE': 'CUE',
+    'BENTEN Film': 'BENTEN Film',
+    'JUVENAGE': 'JUVENAGE',
+    'AXsiZ': 'AXsiZ',
+    'Signal.MD': 'シグナル・エムディ',
+    'Daily Plan.net': 'Daily Plan.net',
+    'NUT': 'NUT',
+    'ROLL2': 'ROLL2',
+    'Aura Studio': 'Aura Studio',
+    'Cypic': 'Cypic',
+    'animation studio42': 'animation studio42',
+    'Colored Pencil Animation Japan': 'Colored Pencil Animation Japan',
+    'Magic Bus': 'マジックバス',
+    'NEWON': 'NEWON',
+    'studio CANDY BOX': 'studio CANDY BOX',
+    'NICHICALINE': 'NICHICALINE',
+    'C-Station': 'C-Station',
+    'Studio Houkiboshi': 'スタジオほうき星',
+    'CHOCOLATE': 'CHOCOLATE',
+    'C2C': 'C2C',
+    'Electric Circus': 'エレクトリックサーカス',
+    'E&H Production': 'E&H production',
+    'KONAMI animation': 'KONAMI animation',
+
+    'Children\'s Playground Entertainment': '童園創意股份有限公司',
+    'Studio Massket': 'Studio Massket',
+    'Studio PuYUKAI': 'スタジオぷYUKAI',
+    'CLOUDHEARTS': 'CLOUDHEARTS',
+    'Liber': 'Liber',
+    'GEEKTOYS': 'GEEKTOYS',
+    'Studio Blanc': 'スタジオブラン',
+    'Dongwoo Animation': 'Dongwoo Animation',
+    'TNK': 'ティー・エヌ・ケー',
+    'Imagica Infos': 'IMAGICA Infos',
+    'ILCASHIPS': 'ILCA SHIPS',
+    'Akatsuki': 'アカツキ',
+    'TriF studio': 'TriFスタジオ',
+    'Studio Signpost': 'スタジオサインポスト',
+    'UNEND': 'UNEND',
+    'M.S.C': 'エム・エス・シー',
+    'Pili International Multimedia': '霹靂國際多媒體股份有限公司',
+    'STUDIO SOTA': 'STUDIO SOTA'
 }
 
 // ジャンル変換（変換表にないものはnullを返す）
@@ -339,63 +403,67 @@ const main = async () => {
 
     const genreMap = new Map<string, number>()
     const productionMap = new Map<string, string>()
-    let genreId = 100
-    let animeCounter = 100
-    let characterCounter = 100
-
     const unmatchedGenres = new Set<string>()
     const unmatchedProductions = new Set<string>()
-
-    // 既存のSQLファイルからanilist_idを読み込んで重複チェック用に使う
-    const outputFile = `scripts/output_${targetYear}.sql`
     const seenAnimeAnilistIds = new Set<number>()
     const seenCharacterAnilistIds = new Set<number>()
 
-    if (fs.existsSync(outputFile)) {
-        console.log(`📂 既存の ${outputFile} を読み込んで重複チェックします`)
-        const existing = fs.readFileSync(outputFile, 'utf8')
+    // カウンターファイルから読み込む
+    const counterFile = 'scripts/counter.json'
+    let animeCounter = 100
+    let characterCounter = 100
+    let genreId = 100
 
-        // 既存アニメのanilist_idを抽出
-        const animeIdMatches = existing.matchAll(/INSERT INTO animes .+ (\d+)\) ON CONFLICT/g)
-        for (const match of animeIdMatches) {
-            seenAnimeAnilistIds.add(Number(match[1]))
-        }
-
-        // 既存キャラのanilist_idを抽出
-        const charIdMatches = existing.matchAll(/INSERT INTO characters .+ (\d+)\) ON CONFLICT/g)
-        for (const match of charIdMatches) {
-            seenCharacterAnilistIds.add(Number(match[1]))
-        }
-
-        // 既存のanimeCounterとcharacterCounterを引き継ぐ
-        const animeIds = existing.matchAll(/'(AN\d+)'/g)
-        let maxAnime = 99
-        for (const match of animeIds) {
-            const num = parseInt(match[1].replace('AN', ''))
-            if (num > maxAnime) maxAnime = num
-        }
-        animeCounter = maxAnime + 1
-
-        const charIds = existing.matchAll(/'(CH\d+)'/g)
-        let maxChar = 99
-        for (const match of charIds) {
-            const num = parseInt(match[1].replace('CH', ''))
-            if (num > maxChar) maxChar = num
-        }
-        characterCounter = maxChar + 1
-
-        // 既存のgenreIdを引き継ぐ
-        const genreIds = existing.matchAll(/INSERT INTO genres \(genre_id, name\) VALUES \((\d+)/g)
-        let maxGenre = 99
-        for (const match of genreIds) {
-            const num = parseInt(match[1])
-            if (num > maxGenre) maxGenre = num
-        }
-        genreId = maxGenre + 1
-
-        console.log(`  既存アニメ: ${seenAnimeAnilistIds.size}件, 既存キャラ: ${seenCharacterAnilistIds.size}件`)
-        console.log(`  animeCounter: ${animeCounter}, characterCounter: ${characterCounter}, genreId: ${genreId}`)
+    if (fs.existsSync(counterFile)) {
+        const counter = JSON.parse(fs.readFileSync(counterFile, 'utf8'))
+        animeCounter = counter.animeCounter ?? 100
+        characterCounter = counter.characterCounter ?? 100
+        genreId = counter.genreId ?? 100
+        console.log(`📊 カウンター読み込み: animeCounter=${animeCounter}, characterCounter=${characterCounter}, genreId=${genreId}`)
+    } else {
+        console.log(`📊 カウンターファイルなし。100から開始します`)
     }
+
+    // 全年分のSQLファイルからanilist_idと制作会社を読み込む（重複チェック用）
+    const allSqlFiles = fs.readdirSync('scripts')
+        .filter((f: string) => f.match(/^output_\d{4}\.sql$/))
+        .sort()
+
+    if (allSqlFiles.length > 0) {
+        console.log(`📂 既存SQLファイルを読み込み中: ${allSqlFiles.join(', ')}`)
+        for (const file of allSqlFiles) {
+            const content = fs.readFileSync(`scripts/${file}`, 'utf8')
+
+            for (const match of content.matchAll(/INSERT INTO animes .+, (\d+)\) ON CONFLICT/g)) {
+                seenAnimeAnilistIds.add(Number(match[1]))
+            }
+            for (const match of content.matchAll(/INSERT INTO characters .+, (\d+)\) ON CONFLICT/g)) {
+                seenCharacterAnilistIds.add(Number(match[1]))
+            }
+            for (const match of content.matchAll(/INSERT INTO productions \(production_id[^)]+\) VALUES \('(PR\d+)', '([^']+)'/g)) {
+                const pid = match[1]
+                const pname = match[2]
+                const engName = Object.entries(PRODUCTION_MAP).find(([, v]) => v === pname)?.[0]
+                if (engName && !productionMap.has(engName)) {
+                    productionMap.set(engName, pid)
+                }
+            }
+            // ジャンルを読み込んでgenreMapに引き継ぐ（追加）
+            for (const match of content.matchAll(/INSERT INTO genres \(genre_id, name\) VALUES \((\d+), '([^']+)'\)/g)) {
+                const gid = Number(match[1])
+                const gname = match[2]
+                // GENRE_MAPの逆引きで英語名を探す
+                const engName = Object.entries(GENRE_MAP).find(([, v]) => v === gname)?.[0]
+                if (engName && !genreMap.has(engName)) {
+                    genreMap.set(engName, gid)
+                }
+            }
+        }
+        console.log(`  既存アニメ: ${seenAnimeAnilistIds.size}件`)
+        console.log(`  既存キャラ: ${seenCharacterAnilistIds.size}件`)
+    }
+
+    const outputFile = `scripts/output_${targetYear}.sql`
 
     for (const season of seasons) {
         console.log(`\n取得中: ${targetYear}年 ${season}...`)
@@ -543,6 +611,15 @@ const main = async () => {
             '-- ==============================\n\n' +
             sql
     }
+
+    // カウンターを保存
+    fs.writeFileSync(counterFile, JSON.stringify({
+        animeCounter,
+        characterCounter,
+        genreId,
+        updatedAt: new Date().toISOString(),
+    }, null, 2), 'utf8')
+    console.log(`\n💾 カウンターを保存しました: ${counterFile}`)
 
     fs.writeFileSync(outputFile, finalSql, 'utf8')
 
