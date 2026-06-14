@@ -3,11 +3,11 @@ import type { Anime } from '../types/anime'
 import type { Character } from '../types/character'
 
 // アニメ一覧をページネーション付きで取得
-export const fetchAnimes = async (page: number = 1, perPage: number = 12): Promise<{ animes: Anime[], total: number }> => {
+export const fetchAnimes = async (page: number = 1, perPage: number = 12, searchQuery: string = ''): Promise<{ animes: Anime[], total: number }> => {
     const from = (page - 1) * perPage
     const to = from + perPage - 1
 
-    const { data, error, count } = await supabase
+    let query = supabase
         .from('animes')
         .select(`
       *,
@@ -15,7 +15,12 @@ export const fetchAnimes = async (page: number = 1, perPage: number = 12): Promi
         genres ( name )
       )
     `, { count: 'exact' })
-        .range(from, to)
+
+    if (searchQuery) {
+        query = query.ilike('title', `%${searchQuery}%`)
+    }
+
+    const { data, error, count } = await query.range(from, to)
 
     if (error) throw error
 
@@ -72,16 +77,20 @@ export const fetchCharacterById = async (characterId: string): Promise<Character
 }
 
 // キャラクター一覧をページネーション付きで取得
-export const fetchCharacters = async (page: number = 1, perPage: number = 12): Promise<{ characters: Character[], total: number }> => {
+export const fetchCharacters = async (page: number = 1, perPage: number = 12, searchQuery: string = ''): Promise<{ characters: Character[], total: number }> => {
     const from = (page - 1) * perPage
     const to = from + perPage - 1
 
-    const { data, error, count } = await supabase
+    let query = supabase
         .from('characters')
         .select('*', { count: 'exact' })
-        .range(from, to)
+
+    if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`)
+    }
+
+    const { data, error, count } = await query.range(from, to)
 
     if (error) throw error
-
     return { characters: data, total: count ?? 0 }
 }
