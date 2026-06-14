@@ -13,7 +13,7 @@ export const Header = () => {
             🌸
           </div>
           <span className="text-lg font-semibold text-pink-600 tracking-tight">
-            AniBase
+            アニレフ
           </span>
         </Link>
 
@@ -21,8 +21,8 @@ export const Header = () => {
           <Link
             to="/"
             className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${isActive('/')
-                ? 'bg-pink-50 text-pink-700 font-medium'
-                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+              ? 'bg-pink-50 text-pink-700 font-medium'
+              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
               }`}
           >
             アニメ
@@ -30,8 +30,8 @@ export const Header = () => {
           <Link
             to="/characters"
             className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${isActive('/characters')
-                ? 'bg-pink-50 text-pink-700 font-medium'
-                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+              ? 'bg-pink-50 text-pink-700 font-medium'
+              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
               }`}
           >
             キャラクター
