@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { fetchAnimes } from '../lib/db'
 import { fetchAnimeImages } from '../lib/anilistApi'
 import { setAnimeImageCache, getAnimeImageCache } from '../lib/imageCache'
 import type { Anime } from '../types/anime'
 import { AnimeCard } from '../components/anime/AnimeCard'
+import { useDebounce } from '../hooks/useDebounce'
 
 const PER_PAGE = 12
 
@@ -20,32 +21,45 @@ export const AnimeListPage = () => {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [searchInput, setSearchInput] = useState('')
 
+  const debouncedSearch = useDebounce(searchInput, 300)
   const totalPages = Math.ceil(total / PER_PAGE)
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      const { animes: data, total } = await fetchAnimes(page, PER_PAGE)
-      setAnimes(data)
-      setTotal(total)
+  const load = useCallback(async () => {
+    setLoading(true)
+    const { animes: data, total } = await fetchAnimes(page, PER_PAGE, debouncedSearch)
+    setAnimes(data)
+    setTotal(total)
 
-      const cached = getAnimeImageCache()
-      const uncachedIds = data
-        .map((a) => a.anilist_id)
-        .filter((id): id is number => id !== null && !cached[id])
+    const cached = getAnimeImageCache()
+    const uncachedIds = data
+      .map((a) => a.anilist_id)
+      .filter((id): id is number => id !== null && !cached[id])
 
-      if (uncachedIds.length > 0) {
-        const images = await fetchAnimeImages(uncachedIds)
-        setAnimeImageCache({ ...cached, ...images })
-        setImageMap({ ...cached, ...images })
-      } else {
-        setImageMap({ ...cached })
-      }
-      setLoading(false)
+    if (uncachedIds.length > 0) {
+      const images = await fetchAnimeImages(uncachedIds)
+      setAnimeImageCache({ ...cached, ...images })
+      setImageMap({ ...cached, ...images })
+    } else {
+      setImageMap({ ...cached })
     }
+    setLoading(false)
+  }, [page, debouncedSearch])
+
+  useEffect(() => {
     load()
-  }, [page])
+  }, [load])
+
+  // 検索文字が変わったらページを1に戻す
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch])
+
+  const handleClear = () => {
+    setSearchInput('')
+    setPage(1)
+  }
 
   return (
     <div>
@@ -56,24 +70,55 @@ export const AnimeListPage = () => {
         <p className="text-sm text-gray-400 mb-5">
           作品情報からキャラクター詳細まで、まとめて調べられる
         </p>
-        <div className="flex justify-center gap-2 flex-wrap">
+        <div className="flex justify-center gap-2 flex-wrap mb-6">
           {genreTags.map((tag) => (
             <span key={tag.label} className={`text-xs px-3 py-1 rounded-full border ${tag.color}`}>
               {tag.label}
             </span>
           ))}
         </div>
+
+        <div className="flex items-center justify-center gap-2 max-w-md mx-auto">
+          <div className="flex items-center flex-1 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="アニメタイトルで検索..."
+              className="flex-1 text-sm text-gray-700 outline-none bg-transparent"
+            />
+            {searchInput && (
+              <button onClick={handleClear} className="text-gray-300 hover:text-gray-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-700">アニメ一覧</h2>
+          <h2 className="text-lg font-semibold text-gray-700">
+            {debouncedSearch ? `「${debouncedSearch}」の検索結果` : 'アニメ一覧'}
+          </h2>
           <p className="text-sm text-gray-400">{total}件</p>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <p className="text-gray-400">読み込み中...</p>
+          </div>
+        ) : animes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-2">
+            <p className="text-gray-400">「{debouncedSearch}」に一致するアニメが見つかりませんでした</p>
+            <button onClick={handleClear} className="text-sm text-pink-500 hover:underline">
+              検索をクリア
+            </button>
           </div>
         ) : (
           <>
@@ -96,7 +141,6 @@ export const AnimeListPage = () => {
                 >
                   前へ
                 </button>
-
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
                   .reduce<(number | '...')[]>((acc, p, idx, arr) => {
@@ -120,7 +164,6 @@ export const AnimeListPage = () => {
                       </button>
                     )
                   )}
-
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
