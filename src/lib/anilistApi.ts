@@ -7,7 +7,10 @@ export const fetchAnimeImages = async (anilistIds: number[]): Promise<Record<num
       Page(perPage: 50) {
         media(id_in: $ids, type: ANIME) {
           id
-          coverImage { large }
+          coverImage {
+            extraLarge
+            large
+          }
         }
       }
     }
@@ -20,7 +23,7 @@ export const fetchAnimeImages = async (anilistIds: number[]): Promise<Record<num
   const data = await res.json()
   const result: Record<number, string> = {}
   for (const media of data.data.Page.media) {
-    result[media.id] = media.coverImage.large
+    result[media.id] = media.coverImage.extraLarge ?? media.coverImage.large
   }
   return result
 }

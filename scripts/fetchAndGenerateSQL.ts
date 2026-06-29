@@ -264,7 +264,7 @@ const fetchAnimes = async (year: number, season: string) => {
             startDate { year month }
             episodes
             genres
-            coverImage { large }
+            coverImage { extraLarge }
             studios(isMain: true) { nodes { name } }
             characters(sort: ROLE, perPage: 5) {
               edges {
