@@ -8,13 +8,6 @@ import { useDebounce } from '../hooks/useDebounce'
 
 const PER_PAGE = 12
 
-const genreTags = [
-  { label: 'アクション', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-  { label: 'ファンタジー', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  { label: 'コメディ', color: 'bg-teal-50 text-teal-700 border-teal-200' },
-  { label: '和風', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-]
-
 export const AnimeListPage = () => {
   const [animes, setAnimes] = useState<Anime[]>([])
   const [imageMap, setImageMap] = useState<Record<number, string>>({})
@@ -63,23 +56,13 @@ export const AnimeListPage = () => {
 
   return (
     <div>
-      <div className="bg-gray-50 border-b border-gray-100 py-10 px-6 text-center w-full">
-        <h1 className="text-2xl font-semibold text-gray-800 mb-2">
-          アニメ・キャラクター情報サイト
-        </h1>
-        <p className="text-sm text-gray-400 mb-5">
-          作品情報からキャラクター詳細まで、まとめて調べられる
-        </p>
-        <div className="flex justify-center gap-2 flex-wrap mb-6">
-          {genreTags.map((tag) => (
-            <span key={tag.label} className={`text-xs px-3 py-1 rounded-full border ${tag.color}`}>
-              {tag.label}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-center gap-2 max-w-md mx-auto">
-          <div className="flex items-center flex-1 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
+      <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-6">
+        <div className="max-w-6xl mx-auto flex items-center gap-6">
+          <div className="flex-shrink-0">
+            <h1 className="text-lg font-bold text-gray-800">アニメ一覧</h1>
+            <p className="text-xs text-gray-400 mt-0.5">作品情報からキャラクター詳細まで調べられる</p>
+          </div>
+          <div className="flex items-center ml-auto w-72 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
             </svg>

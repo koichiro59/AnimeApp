@@ -55,12 +55,13 @@ export const CharacterListPage = () => {
 
     return (
         <div>
-            <div className="bg-gray-50 border-b border-gray-100 py-10 px-6 text-center w-full">
-                <h1 className="text-2xl font-semibold text-gray-800 mb-2">キャラクター一覧</h1>
-                <p className="text-sm text-gray-400 mb-6">登場キャラクターの詳細情報をまとめて調べられる</p>
-
-                <div className="flex items-center justify-center gap-2 max-w-md mx-auto">
-                    <div className="flex items-center flex-1 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
+            <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-6">
+                <div className="max-w-6xl mx-auto flex items-center gap-6">
+                    <div className="flex-shrink-0">
+                        <h1 className="text-lg font-bold text-gray-800">キャラクター一覧</h1>
+                        <p className="text-xs text-gray-400 mt-0.5">登場キャラクターの詳細情報をまとめて調べられる</p>
+                    </div>
+                    <div className="flex items-center ml-auto w-72 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                         </svg>
