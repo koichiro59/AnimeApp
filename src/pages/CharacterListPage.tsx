@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { fetchCharacters } from '../lib/db'
 import { fetchCharacterImages } from '../lib/anilistApi'
 import { getCharacterImageCache, setCharacterImageCache } from '../lib/imageCache'
@@ -55,6 +56,11 @@ export const CharacterListPage = () => {
 
     return (
         <div>
+            <Helmet>
+                <title>キャラクター一覧 | アニレフ</title>
+                <meta name="description" content="アニレフのキャラクター一覧ページ。アニメに登場するキャラクターのビジュアルや詳細情報を調べられます。" />
+                <link rel="canonical" href="https://aniref.net/characters" />
+            </Helmet>
             <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-6">
                 <div className="max-w-6xl mx-auto flex items-center gap-6">
                     <div className="flex-shrink-0">

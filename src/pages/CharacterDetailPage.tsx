@@ -86,6 +86,7 @@ export const CharacterDetailPage = () => {
         <meta property="og:title" content={`${character.name} | アニレフ`} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={`https://aniref.net/character/${id}`} />
+        <link rel="canonical" href={`https://aniref.net/character/${id}`} />
         <script type="application/ld+json">
           {JSON.stringify(jsonLd)}
         </script>
