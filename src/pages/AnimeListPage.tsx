@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { fetchAnimes } from '../lib/db'
 import { fetchAnimeImages } from '../lib/anilistApi'
 import { setAnimeImageCache, getAnimeImageCache } from '../lib/imageCache'
@@ -56,6 +57,11 @@ export const AnimeListPage = () => {
 
   return (
     <div>
+      <Helmet>
+        <title>アニメ一覧 | アニレフ</title>
+        <meta name="description" content="アニレフのアニメ一覧ページ。2024年〜2026年の最新アニメ情報をキャラクターとあわせて調べられます。" />
+        <link rel="canonical" href="https://aniref.net/animes" />
+      </Helmet>
       <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-6">
         <div className="max-w-6xl mx-auto flex items-center gap-6">
           <div className="flex-shrink-0">

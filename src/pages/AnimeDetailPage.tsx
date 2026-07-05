@@ -103,6 +103,7 @@ export const AnimeDetailPage = () => {
         <meta property="og:title" content={`${anime.title} | アニレフ`} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={`https://aniref.net/anime/${id}`} />
+        <link rel="canonical" href={`https://aniref.net/anime/${id}`} />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 

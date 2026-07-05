@@ -184,6 +184,7 @@ export const HomePage = () => {
           name="description"
           content="キャラクターから気になるアニメを見つけよう。アニレフはキャラクター情報を中心としたアニメ情報サイトです。"
         />
+        <link rel="canonical" href="https://aniref.net/" />
       </Helmet>
 
       {/* Hero */}
