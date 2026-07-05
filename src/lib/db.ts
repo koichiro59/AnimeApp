@@ -53,6 +53,18 @@ export const fetchAnimeById = async (animeId: string): Promise<Anime | null> => 
     }
 }
 
+// キャラクタープレビュー（上限付き）をアニメIDで取得
+export const fetchCharactersPreview = async (animeId: string, limit: number = 3): Promise<Character[]> => {
+    const { data, error } = await supabase
+        .from('characters')
+        .select('*')
+        .eq('anime_id', animeId)
+        .limit(limit)
+
+    if (error) throw error
+    return data
+}
+
 // キャラクター一覧をアニメIDで取得
 export const fetchCharactersByAnimeId = async (animeId: string): Promise<Character[]> => {
     const { data, error } = await supabase
