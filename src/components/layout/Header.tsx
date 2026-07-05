@@ -27,6 +27,15 @@ export const Header = () => {
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
               }`}
           >
+            ホーム
+          </Link>
+          <Link
+            to="/animes"
+            className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${isActive('/animes')
+              ? 'bg-pink-50 text-pink-700 font-medium'
+              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+              }`}
+          >
             アニメ
           </Link>
           <Link
