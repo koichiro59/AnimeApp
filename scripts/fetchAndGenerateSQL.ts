@@ -44,7 +44,6 @@ const GENRE_MAP: Record<string, string> = {
 
 // 制作会社英語→日本語変換マップ
 const PRODUCTION_MAP: Record<string, string> = {
-    // Wikipedia・公式サイトで確認済み
     'A-1 Pictures': 'A-1 Pictures',
     'Kyoto Animation': '京都アニメーション',
     'Toei Animation': '東映アニメーション',
@@ -109,26 +108,25 @@ const PRODUCTION_MAP: Record<string, string> = {
     'Orange': 'オレンジ',
     'POLYGON PICTURES': 'ポリゴン・ピクチュアズ',
     'Lay-duce': 'Lay-duce',
-    'Okuruto Noboru': 'オクルトノボル',          // 公式サイト・Wikipedia確認済み
-    'SynergySP': 'シナジーSP',                   // Wikipedia確認済み
-    'Bandai Namco Pictures': 'バンダイナムコピクチャーズ', // Wikipedia・公式サイト確認済み
-    'Studio Khara': 'スタジオカラー',             // Wikipedia確認済み
-    'Felix Film': 'フェリックスフィルム',         // Wikipedia・公式サイト確認済み
-    'Nexus': 'Nexus',                            // Wikipedia確認済み（日本語名なし）
-    'Platinum Vision': 'プラチナビジョン',        // Wikipedia確認済み
-    'Bridge': 'ブリッジ',                         // Wikipedia・公式サイト確認済み
-    'Gaina': 'ガイナ',                            // Wikipedia確認済み
-    'project No.9': 'プロジェクトナンバーナイン', // Wikipedia・公式サイト確認済み
-    'Ajiado': '亜細亜堂',                         // Wikipedia確認済み
-    'Jumondou': '寿門堂',                         // Wikipedia・公式サイト確認済み
-    'Yokohama Animation Lab': '横浜アニメーションラボ', // 一般的な表記
-    'Tsumugi Akita Anime Lab': '紬ぎ秋田アニメラボ',   // 一般的な表記
-    'Sotsu': 'ソツ',                              // Wikipedia確認済み
-    'Shogakukan Music & Digital Entertainment': '小学館ミュージック&デジタル エンタテイメント', // 公式サイト確認済み
-    'Hayabusa Film': 'ハヤブサフィルム',          // 公式サイト確認済み
-    'DLE': 'DLE',                                // Wikipedia確認済み（日本語名なし）
-    'Yumeta Company': '夢太カンパニー',           // 要確認
-    // 公式日本語名未確認のためそのまま
+    'Okuruto Noboru': 'オクルトノボル',
+    'SynergySP': 'シナジーSP',
+    'Bandai Namco Pictures': 'バンダイナムコピクチャーズ',
+    'Studio Khara': 'スタジオカラー',
+    'Felix Film': 'フェリックスフィルム',
+    'Nexus': 'Nexus',
+    'Platinum Vision': 'プラチナビジョン',
+    'Bridge': 'ブリッジ',
+    'Gaina': 'ガイナ',
+    'project No.9': 'プロジェクトナンバーナイン',
+    'Ajiado': '亜細亜堂',
+    'Jumondou': '寿門堂',
+    'Yokohama Animation Lab': '横浜アニメーションラボ',
+    'Tsumugi Akita Anime Lab': '紬ぎ秋田アニメラボ',
+    'Sotsu': 'ソツ',
+    'Shogakukan Music & Digital Entertainment': '小学館ミュージック&デジタル エンタテイメント',
+    'Hayabusa Film': 'ハヤブサフィルム',
+    'DLE': 'DLE',
+    'Yumeta Company': '夢太カンパニー',
     'Studio VOLN': 'Studio VOLN',
     'TYPHOON GRAPHICS': 'TYPHOON GRAPHICS',
     'studio A-CAT': 'studio A-CAT',
@@ -159,11 +157,8 @@ const PRODUCTION_MAP: Record<string, string> = {
     'Voil': 'Voil',
     'Studio Flad': 'Studio Flad',
     'East Fish Studio': 'East Fish Studio',
-    'BLADE': 'BLADE',       // 公式社名が英語（Wikipedia確認済み）
-    'Nomad': 'ノーマッド',  // Wikipedia・英語Wikipedia確認済み
-
-    // 2024-2026取得分で追加推奨
-
+    'BLADE': 'BLADE',
+    'Nomad': 'ノーマッド',
     'Shuka': '朱夏',
     'A.C.G.T.': 'A.C.G.T',
     'BELLNOX FILMS': 'ベルノックスフィルムズ',
@@ -206,7 +201,6 @@ const PRODUCTION_MAP: Record<string, string> = {
     'Electric Circus': 'エレクトリックサーカス',
     'E&H Production': 'E&H production',
     'KONAMI animation': 'KONAMI animation',
-
     'Children\'s Playground Entertainment': '童園創意股份有限公司',
     'Studio Massket': 'Studio Massket',
     'Studio PuYUKAI': 'スタジオぷYUKAI',
@@ -241,6 +235,7 @@ const translateProduction = (name: string): string | null => {
     return null
 }
 
+// ===== アニメ一覧を取得（キャラクターは含まない） =====
 const fetchAnimes = async (year: number, season: string) => {
     let allMedia: any[] = []
     let page = 1
@@ -266,19 +261,6 @@ const fetchAnimes = async (year: number, season: string) => {
             genres
             coverImage { extraLarge }
             studios(isMain: true) { nodes { name } }
-            characters(sort: ROLE, perPage: 5) {
-              edges {
-                role
-                node {
-                  id
-                  name { native full }
-                  image { large }
-                  age
-                  gender
-                  description(asHtml: false)
-                }
-              }
-            }
           }
         }
       }
@@ -300,6 +282,70 @@ const fetchAnimes = async (year: number, season: string) => {
     }
 
     return allMedia
+}
+
+// ===== 指定アニメの全キャラクターをページング取得 =====
+const fetchCharacters = async (animeId: number): Promise<any[]> => {
+    let page = 1
+    let hasNextPage = true
+    const characters: any[] = []
+
+    while (hasNextPage) {
+        const query = `
+      query ($id: Int, $page: Int) {
+        Media(id: $id) {
+          characters(page: $page, perPage: 50, sort: ROLE) {
+            pageInfo { hasNextPage }
+            edges {
+              role
+              node {
+                id
+                name { native full }
+                image { large }
+                age
+                gender
+                description(asHtml: false)
+              }
+            }
+          }
+        }
+      }
+    `
+
+        let retries = 0
+        let success = false
+        let data: any = null
+
+        // AniListの429（レート制限）対策のリトライ処理
+        while (!success && retries < 3) {
+            const res = await fetch(ANILIST_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, variables: { id: animeId, page } }),
+            })
+
+            if (res.status === 429) {
+                console.log(`    ⏳ レート制限。5秒待機してリトライ...`)
+                await new Promise((r) => setTimeout(r, 5000))
+                retries++
+                continue
+            }
+
+            data = await res.json()
+            success = true
+        }
+
+        const charData = data?.data?.Media?.characters
+        if (!charData) break
+
+        characters.push(...(charData.edges ?? []))
+        hasNextPage = charData.pageInfo?.hasNextPage ?? false
+        page++
+
+        await new Promise((r) => setTimeout(r, 600))
+    }
+
+    return characters
 }
 
 const fetchWikiSynopsis = async (title: string): Promise<string> => {
@@ -328,7 +374,6 @@ const fetchWikiSynopsis = async (title: string): Promise<string> => {
 // Wikipediaからキャラクターの日本語説明を取得
 const fetchWikiCharacterDescription = async (characterName: string, animeTitle: string): Promise<string> => {
     try {
-        // まずキャラクター名で検索
         const params = new URLSearchParams({
             action: 'query',
             titles: `${characterName}`,
@@ -448,11 +493,9 @@ const main = async () => {
                     productionMap.set(engName, pid)
                 }
             }
-            // ジャンルを読み込んでgenreMapに引き継ぐ（追加）
             for (const match of content.matchAll(/INSERT INTO genres \(genre_id, name\) VALUES \((\d+), '([^']+)'\)/g)) {
                 const gid = Number(match[1])
                 const gname = match[2]
-                // GENRE_MAPの逆引きで英語名を探す
                 const engName = Object.entries(GENRE_MAP).find(([, v]) => v === gname)?.[0]
                 if (engName && !genreMap.has(engName)) {
                     genreMap.set(engName, gid)
@@ -478,7 +521,6 @@ const main = async () => {
         console.log(`  ${animes.length}件取得`)
 
         for (const anime of animes) {
-            // 日本語タイトルがない場合はスキップ
             const title: string = anime.title.native ?? anime.title.romaji
 
             // アニメの重複スキップ
@@ -536,7 +578,14 @@ const main = async () => {
                 )
             }
 
-            for (const edge of (anime.characters?.edges ?? [])) {
+            // ===== キャラクターを全件ページング取得 =====
+            const characterEdges = await fetchCharacters(anime.id)
+            console.log(`    👥 ${title} → キャラ${characterEdges.length}件取得`)
+
+            for (const edge of characterEdges) {
+                // BACKGROUND（背景キャラ）はスキップ
+                if (edge.role === 'BACKGROUND') continue
+
                 const char = edge.node
                 const charName: string = char.name.native
                 if (!charName || !isJapanese(charName)) continue
