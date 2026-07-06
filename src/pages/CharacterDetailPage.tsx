@@ -2,7 +2,8 @@ import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { fetchCharacterById, fetchAnimeById } from '../lib/db'
-import { getCharacterImageCache } from '../lib/imageCache'
+import { fetchCharacterImages } from '../lib/anilistApi'
+import { getCharacterImageCache, setCharacterImageCache } from '../lib/imageCache'
 import type { Character } from '../types/character'
 import type { Anime } from '../types/anime'
 
@@ -16,6 +17,13 @@ export const CharacterDetailPage = () => {
     const load = async () => {
       const charData = await fetchCharacterById(id!)
       setCharacter(charData)
+
+      // キャラ画像がキャッシュにない場合は取得
+      if (charData?.anilist_id && !getCharacterImageCache()[charData.anilist_id]) {
+        const images = await fetchCharacterImages([charData.anilist_id])
+        setCharacterImageCache(images)
+      }
+
       if (charData?.anime_id) {
         const animeData = await fetchAnimeById(charData.anime_id)
         setAnime(animeData)
@@ -86,6 +94,9 @@ export const CharacterDetailPage = () => {
         <meta property="og:title" content={`${character.name} | アニレフ`} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={`https://aniref.net/character/${id}`} />
+        {imageUrl && <meta property="og:image" content={imageUrl} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        {imageUrl && <meta name="twitter:image" content={imageUrl} />}
         <link rel="canonical" href={`https://aniref.net/character/${id}`} />
         <script type="application/ld+json">
           {JSON.stringify(jsonLd)}

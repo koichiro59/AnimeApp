@@ -2,8 +2,8 @@ import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { fetchAnimeById, fetchCharactersByAnimeId } from '../lib/db'
-import { fetchCharacterImages } from '../lib/anilistApi'
-import { getAnimeImageCache, getCharacterImageCache, setCharacterImageCache } from '../lib/imageCache'
+import { fetchAnimeImages, fetchCharacterImages } from '../lib/anilistApi'
+import { getAnimeImageCache, setAnimeImageCache, getCharacterImageCache, setCharacterImageCache } from '../lib/imageCache'
 import type { Anime } from '../types/anime'
 import type { Character } from '../types/character'
 import { CharacterCard } from '../components/character/CharacterCard'
@@ -19,6 +19,12 @@ export const AnimeDetailPage = () => {
     const load = async () => {
       const animeData = await fetchAnimeById(id!)
       setAnime(animeData)
+
+      // アニメ画像がキャッシュにない場合は取得
+      if (animeData?.anilist_id && !getAnimeImageCache()[animeData.anilist_id]) {
+        const images = await fetchAnimeImages([animeData.anilist_id])
+        setAnimeImageCache(images)
+      }
 
       const charData = await fetchCharactersByAnimeId(id!)
       setCharacters(charData)
@@ -103,6 +109,9 @@ export const AnimeDetailPage = () => {
         <meta property="og:title" content={`${anime.title} | アニレフ`} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={`https://aniref.net/anime/${id}`} />
+        {animeImageUrl && <meta property="og:image" content={animeImageUrl} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        {animeImageUrl && <meta name="twitter:image" content={animeImageUrl} />}
         <link rel="canonical" href={`https://aniref.net/anime/${id}`} />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
