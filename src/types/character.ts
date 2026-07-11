@@ -8,4 +8,8 @@ export type Character = {
   height: number | null
   weight: number | null
   anilist_id: number | null
+  image_url: string | null
+  birthday: string | null
+  blood_type: string | null
+  voice_actor: string | null
 }

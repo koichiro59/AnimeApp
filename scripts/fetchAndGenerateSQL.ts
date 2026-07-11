@@ -4,6 +4,7 @@ dotenv.config({ path: '.env.local' })
 
 const ANILIST_URL = 'https://graphql.anilist.co'
 const WIKIPEDIA_API = 'https://ja.wikipedia.org/w/api.php'
+const DEEPL_API_KEY = process.env.DEEPL_API_KEY!
 
 // コマンドライン引数から年を取得
 const args = process.argv.slice(2)
@@ -255,7 +256,7 @@ const fetchAnimes = async (year: number, season: string) => {
             countryOfOrigin: JP
           ) {
             id
-            title { native romaji }
+            title { native romaji english }
             startDate { year month }
             episodes
             genres
@@ -298,12 +299,17 @@ const fetchCharacters = async (animeId: number): Promise<any[]> => {
             pageInfo { hasNextPage }
             edges {
               role
+              voiceActors(language: JAPANESE) {
+                name { native }
+              }
               node {
                 id
                 name { native full }
                 image { large }
                 age
                 gender
+                bloodType
+                dateOfBirth { year month day }
                 description(asHtml: false)
               }
             }
@@ -425,16 +431,58 @@ const normalizeGender = (gender: string | null | undefined): string | null => {
     return null
 }
 
-const cleanDescription = (text: string | null | undefined): string => {
+const normalizeRomaji = (text: string): string =>
+    text.replace(/ou/gi, 'o').replace(/uu/gi, 'u').replace(/oo/gi, 'o')
+
+const parseHeight = (description: string | null | undefined): number | null => {
+    if (!description) return null
+    const match = description.match(/(?:Height|身長)[^0-9]*(\d+)\s*cm/i)
+    return match ? parseInt(match[1]) : null
+}
+
+const formatBirthday = (dateOfBirth: { year: number | null, month: number | null, day: number | null } | null): string | null => {
+    if (!dateOfBirth) return null
+    const { month, day } = dateOfBirth
+    if (month && day) return `${month}月${day}日`
+    if (month) return `${month}月`
+    return null
+}
+
+const prepareDescription = (text: string | null | undefined): string => {
     if (!text) return ''
     return text
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/~![\s\S]*?!~/g, '')
         .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
         .replace(/__([^_]+)__/g, '$1')
         .replace(/~~([^~]+)~~/g, '$1')
+        .replace(/^(?:Height|身長|Weight|体重)[^\n]*\n?/gim, '')
         .replace(/\n/g, ' ')
         .trim()
-        .slice(0, 200)
+        .slice(0, 500)
+}
+
+const translateWithDeepl = async (text: string, nameMap: Record<string, string>): Promise<string> => {
+    if (!text) return ''
+    let preprocessed = normalizeRomaji(text)
+    for (const [en, ja] of Object.entries(nameMap)) {
+        preprocessed = preprocessed.replaceAll(en, ja)
+    }
+    try {
+        const res = await fetch('https://api-free.deepl.com/v2/translate', {
+            method: 'POST',
+            headers: {
+                'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: [preprocessed], target_lang: 'JA', source_lang: 'EN' }),
+        })
+        const data = await res.json()
+        return data.translations?.[0]?.text ?? ''
+    } catch {
+        return ''
+    }
 }
 
 const main = async () => {
@@ -582,13 +630,30 @@ const main = async () => {
             const characterEdges = await fetchCharacters(anime.id)
             console.log(`    👥 ${title} → キャラ${characterEdges.length}件取得`)
 
+            // 名前マップ構築（英語名→日本語名、翻訳前置換用）
+            const nameMap: Record<string, string> = {}
+            // アニメタイトルを追加（正規化キーで登録）
+            const nativeTitle = anime.title.native
+            if (nativeTitle) {
+                if (anime.title.english && anime.title.english !== nativeTitle) nameMap[normalizeRomaji(anime.title.english)] = nativeTitle
+                if (anime.title.romaji && anime.title.romaji !== nativeTitle) nameMap[normalizeRomaji(anime.title.romaji)] = nativeTitle
+            }
+            // キャラクター名を追加（正規化キーで登録）
+            for (const edge of characterEdges) {
+                const { full, native } = edge.node.name
+                if (full && native && isJapanese(native)) nameMap[normalizeRomaji(full)] = native
+            }
+
             for (const edge of characterEdges) {
                 // BACKGROUND（背景キャラ）はスキップ
                 if (edge.role === 'BACKGROUND') continue
 
                 const char = edge.node
-                const charName: string = char.name.native
-                if (!charName || !isJapanese(charName)) continue
+                // 日本語名があればそれを使用、なければ英語名にフォールバック（韓中キャラ対応）
+                const charName = (char.name.native && isJapanese(char.name.native))
+                    ? char.name.native
+                    : (char.name.full ?? null)
+                if (!charName) continue
 
                 // キャラクターの重複スキップ
                 if (seenCharacterAnilistIds.has(char.id)) {
@@ -600,16 +665,25 @@ const main = async () => {
                 const characterId = `CH${String(characterCounter).padStart(6, '0')}`
                 characterCounter++
 
-                // Wikipediaから日本語説明を取得
+                const imageUrl = char.image?.large ?? null
+                const birthday = formatBirthday(char.dateOfBirth)
+                const bloodType = char.bloodType ?? null
+                const voiceActor = edge.voiceActors?.[0]?.name?.native ?? null
+                const height = parseHeight(char.description)
+
+                // DeepLで日本語に翻訳
                 let description = ''
-                if (char.description && isJapanese(char.description)) {
-                    description = cleanDescription(char.description)
-                } else {
-                    description = await fetchWikiCharacterDescription(charName, title)
+                const cleaned = prepareDescription(char.description)
+                if (cleaned && !isJapanese(cleaned)) {
+                    description = await translateWithDeepl(cleaned, nameMap)
+                    console.log(`      🌐 翻訳: ${charName}`)
+                    await new Promise(r => setTimeout(r, 300))
+                } else if (cleaned) {
+                    description = cleaned
                 }
 
                 characterInserts.push(
-                    `INSERT INTO characters (character_id, anime_id, name, description, age, gender, anilist_id) VALUES (${esc(characterId)}, ${esc(animeId)}, ${esc(charName)}, ${esc(description)}, ${parseAge(char.age)}, ${esc(normalizeGender(char.gender))}, ${char.id}) ON CONFLICT DO NOTHING;`
+                    `INSERT INTO characters (character_id, anime_id, name, description, age, gender, image_url, birthday, blood_type, voice_actor, height, anilist_id) VALUES (${esc(characterId)}, ${esc(animeId)}, ${esc(charName)}, ${esc(description)}, ${parseAge(char.age)}, ${esc(normalizeGender(char.gender))}, ${esc(imageUrl)}, ${esc(birthday)}, ${esc(bloodType)}, ${esc(voiceActor)}, ${height ?? 'NULL'}, ${char.id}) ON CONFLICT DO NOTHING;`
                 )
             }
 
