@@ -129,30 +129,26 @@ export const CharacterDetailPage = () => {
               <h1 className="text-xl font-semibold text-gray-800 mb-4">{character.name}</h1>
 
               <div className="grid grid-cols-2 gap-3 mb-5">
-                {character.age && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-0.5">年齢</p>
-                    <p className="text-sm font-medium text-gray-700">{character.age}歳</p>
-                  </div>
-                )}
-                {character.gender && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-0.5">性別</p>
-                    <p className="text-sm font-medium text-gray-700">{character.gender}</p>
-                  </div>
-                )}
-                {character.height && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-0.5">身長</p>
-                    <p className="text-sm font-medium text-gray-700">{character.height}cm</p>
-                  </div>
-                )}
-                {character.weight && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-0.5">体重</p>
-                    <p className="text-sm font-medium text-gray-700">{character.weight}kg</p>
-                  </div>
-                )}
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">年齢</p>
+                  <p className="text-sm font-medium text-gray-700">{character.age ? `${character.age}歳` : '－'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">性別</p>
+                  <p className="text-sm font-medium text-gray-700">{character.gender ?? '－'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">誕生日</p>
+                  <p className="text-sm font-medium text-gray-700">{character.birthday ?? '－'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">身長</p>
+                  <p className="text-sm font-medium text-gray-700">{character.height ? `${character.height}cm` : '－'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-0.5">声優</p>
+                  <p className="text-sm font-medium text-gray-700">{character.voice_actor ?? '－'}</p>
+                </div>
               </div>
 
               {character.description && (
