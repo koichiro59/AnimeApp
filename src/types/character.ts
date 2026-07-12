@@ -13,4 +13,7 @@ export type Character = {
   blood_type: string | null
   voice_actor: string | null
   tags: string[] | null
+  popularity: number | null
+  favourites: number | null
+  anime_rank: number | null
 }

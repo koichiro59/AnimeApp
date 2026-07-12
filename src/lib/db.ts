@@ -20,6 +20,10 @@ export const fetchAnimes = async (page: number = 1, perPage: number = 12, search
         query = query.ilike('title', `%${searchQuery}%`)
     }
 
+    query = query
+        .eq('is_hidden', false)
+        .order('popularity', { ascending: false, nullsFirst: false })
+
     const { data, error, count } = await query.range(from, to)
 
     if (error) throw error
@@ -59,6 +63,8 @@ export const fetchCharactersPreview = async (animeId: string, limit: number = 3)
         .from('characters')
         .select('*')
         .eq('anime_id', animeId)
+        .order('favourites', { ascending: false, nullsFirst: false })
+        .order('anime_rank', { ascending: true, nullsFirst: false })
         .limit(limit)
 
     if (error) throw error
@@ -89,20 +95,23 @@ export const fetchCharacterById = async (characterId: string): Promise<Character
 }
 
 // キャラクター一覧をページネーション付きで取得
+// 各アニメの上位3キャラ優先 → アニメ人気順 → キャラお気に入り数順
 export const fetchCharacters = async (page: number = 1, perPage: number = 12, searchQuery: string = ''): Promise<{ characters: Character[], total: number }> => {
-    const from = (page - 1) * perPage
-    const to = from + perPage - 1
+    const offset = (page - 1) * perPage
 
-    let query = supabase
-        .from('characters')
-        .select('*', { count: 'exact' })
+    const [{ data, error: rpcError }, { count, error: countError }] = await Promise.all([
+        supabase.rpc('get_characters_list', {
+            p_offset: offset,
+            p_limit: perPage,
+            p_search: searchQuery || null,
+        }),
+        supabase
+            .from('characters')
+            .select('*', { count: 'exact', head: true })
+            .ilike('name', searchQuery ? `%${searchQuery}%` : '%'),
+    ])
 
-    if (searchQuery) {
-        query = query.ilike('name', `%${searchQuery}%`)
-    }
-
-    const { data, error, count } = await query.range(from, to)
-
-    if (error) throw error
-    return { characters: data, total: count ?? 0 }
+    if (rpcError) throw rpcError
+    if (countError) throw countError
+    return { characters: (data ?? []) as Character[], total: count ?? 0 }
 }
