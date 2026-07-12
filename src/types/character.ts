@@ -12,4 +12,5 @@ export type Character = {
   birthday: string | null
   blood_type: string | null
   voice_actor: string | null
+  tags: string[] | null
 }
