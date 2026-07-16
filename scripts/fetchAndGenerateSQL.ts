@@ -683,7 +683,7 @@ const main = async () => {
                 }
 
                 characterInserts.push(
-                    `INSERT INTO characters (character_id, anime_id, name, description, age, gender, image_url, birthday, blood_type, voice_actor, height, anilist_id) VALUES (${esc(characterId)}, ${esc(animeId)}, ${esc(charName)}, ${esc(description)}, ${parseAge(char.age)}, ${esc(normalizeGender(char.gender))}, ${esc(imageUrl)}, ${esc(birthday)}, ${esc(bloodType)}, ${esc(voiceActor)}, ${height ?? 'NULL'}, ${char.id}) ON CONFLICT DO NOTHING;`
+                    `INSERT INTO characters (character_id, anime_id, name, description, age, gender, image_url, birthday, blood_type, voice_actor, height, anilist_id, role) VALUES (${esc(characterId)}, ${esc(animeId)}, ${esc(charName)}, ${esc(description)}, ${parseAge(char.age)}, ${esc(normalizeGender(char.gender))}, ${esc(imageUrl)}, ${esc(birthday)}, ${esc(bloodType)}, ${esc(voiceActor)}, ${height ?? 'NULL'}, ${char.id}, ${esc(edge.role)}) ON CONFLICT DO NOTHING;`
                 )
             }
 

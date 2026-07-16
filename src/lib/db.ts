@@ -63,8 +63,7 @@ export const fetchCharactersPreview = async (animeId: string, limit: number = 3)
         .from('characters')
         .select('*')
         .eq('anime_id', animeId)
-        .order('favourites', { ascending: false, nullsFirst: false })
-        .order('anime_rank', { ascending: true, nullsFirst: false })
+        .order('character_id', { ascending: true })
         .limit(limit)
 
     if (error) throw error
@@ -77,6 +76,7 @@ export const fetchCharactersByAnimeId = async (animeId: string): Promise<Charact
         .from('characters')
         .select('*')
         .eq('anime_id', animeId)
+        .order('character_id', { ascending: true })
 
     if (error) throw error
     return data
