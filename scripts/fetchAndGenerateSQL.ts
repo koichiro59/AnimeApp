@@ -11,9 +11,11 @@ const args = process.argv.slice(2)
 const targetYear = parseInt(args[0])
 if (!targetYear || isNaN(targetYear)) {
     console.error('❌ 年を指定してください。例: npx tsx scripts/fetchAndGenerateSQL.ts 2025')
+    console.error('   翻訳スキップ: npx tsx scripts/fetchAndGenerateSQL.ts 2025 --no-translate')
     process.exit(1)
 }
-console.log(`📅 ${targetYear}年のアニメを取得します`)
+const skipTranslation = args.includes('--no-translate')
+console.log(`📅 ${targetYear}年のアニメを取得します${skipTranslation ? '（翻訳スキップ）' : ''}`)
 
 // 日本語かどうかチェック
 const isJapanese = (text: string | null | undefined): boolean => {
@@ -202,7 +204,7 @@ const PRODUCTION_MAP: Record<string, string> = {
     'Electric Circus': 'エレクトリックサーカス',
     'E&H Production': 'E&H production',
     'KONAMI animation': 'KONAMI animation',
-    'Children\'s Playground Entertainment': '童園創意股份有限公司',
+    'Children\'s Playground Entertainment': 'Children\'s Playground Entertainment',
     'Studio Massket': 'Studio Massket',
     'Studio PuYUKAI': 'スタジオぷYUKAI',
     'CLOUDHEARTS': 'CLOUDHEARTS',
@@ -219,7 +221,10 @@ const PRODUCTION_MAP: Record<string, string> = {
     'UNEND': 'UNEND',
     'M.S.C': 'エム・エス・シー',
     'Pili International Multimedia': '霹靂國際多媒體股份有限公司',
-    'STUDIO SOTA': 'STUDIO SOTA'
+    'STUDIO SOTA': 'STUDIO SOTA',
+    'Sakura Create': '作楽クリエイト',
+    'Acca effe': 'Acca effe',
+    'Live2D Creative Studio': 'Live2D Creative Studio',
 }
 
 // ジャンル変換（変換表にないものはnullを返す）
@@ -672,10 +677,10 @@ const main = async () => {
                 const voiceActor = edge.voiceActors?.[0]?.name?.native ?? null
                 const height = parseHeight(char.description)
 
-                // DeepLで日本語に翻訳
+                // DeepLで日本語に翻訳（--no-translate 指定時はスキップ）
                 let description = ''
                 const cleaned = prepareDescription(char.description)
-                if (cleaned && !isJapanese(cleaned)) {
+                if (cleaned && !isJapanese(cleaned) && !skipTranslation) {
                     description = await translateWithDeepl(cleaned, nameMap)
                     console.log(`      🌐 翻訳: ${charName}`)
                     await new Promise(r => setTimeout(r, 300))

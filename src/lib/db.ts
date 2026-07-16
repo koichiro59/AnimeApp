@@ -17,35 +17,61 @@ const sortCharacters = (characters: Character[]): Character[] =>
         return a.character_id.localeCompare(b.character_id)
     })
 
+// ジャンル一覧を取得
+export const fetchGenres = async (): Promise<string[]> => {
+    const { data, error } = await supabase.from('genres').select('name').order('name')
+    if (error) throw error
+    return (data ?? []).map((g: any) => g.name)
+}
+
 // アニメ一覧をページネーション付きで取得
-export const fetchAnimes = async (page: number = 1, perPage: number = 12, searchQuery: string = ''): Promise<{ animes: Anime[], total: number }> => {
+export const fetchAnimes = async (
+    page: number = 1,
+    perPage: number = 12,
+    searchQuery: string = '',
+    genreFilters: string[] = [],
+    yearFilter: string = '',
+): Promise<{ animes: Anime[], total: number }> => {
     const from = (page - 1) * perPage
     const to = from + perPage - 1
 
-    let query = supabase
-        .from('animes')
-        .select(`
-      *,
-      anime_genres (
-        genres ( name )
-      )
-    `, { count: 'exact' })
+    let filteredAnimeIds: string[] | null = null
+    if (genreFilters.length > 0) {
+        const { data: genreRows, error: gErr } = await supabase
+            .from('genres')
+            .select('genre_id')
+            .in('name', genreFilters)
+        if (gErr) throw gErr
 
-    if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`)
+        const genreIds = (genreRows ?? []).map((g: any) => g.genre_id)
+        if (genreIds.length === 0) return { animes: [], total: 0 }
+
+        const { data: agRows, error: agErr } = await supabase
+            .from('anime_genres')
+            .select('anime_id')
+            .in('genre_id', genreIds)
+        if (agErr) throw agErr
+
+        filteredAnimeIds = [...new Set((agRows ?? []).map((ag: any) => ag.anime_id))]
+        if (filteredAnimeIds.length === 0) return { animes: [], total: 0 }
     }
 
-    query = query
+    let query = supabase
+        .from('animes')
+        .select('*, anime_genres(genres(name))', { count: 'exact' })
         .eq('is_hidden', false)
         .order('popularity', { ascending: false, nullsFirst: false })
 
-    const { data, error, count } = await query.range(from, to)
+    if (searchQuery) query = query.ilike('title', `%${searchQuery}%`)
+    if (yearFilter) query = query.ilike('broadcast_season', `${yearFilter}%`)
+    if (filteredAnimeIds !== null) query = query.in('anime_id', filteredAnimeIds)
 
+    const { data, error, count } = await query.range(from, to)
     if (error) throw error
 
-    const animes = data.map((anime: any) => ({
+    const animes = (data ?? []).map((anime: any) => ({
         ...anime,
-        genres: anime.anime_genres.map((ag: any) => ag.genres.name),
+        genres: (anime.anime_genres ?? []).map((ag: any) => ag.genres?.name).filter(Boolean),
     }))
 
     return { animes, total: count ?? 0 }
@@ -106,10 +132,41 @@ export const fetchCharacterById = async (characterId: string): Promise<Character
     return data
 }
 
+// キャラクタータグ一覧を取得
+export const fetchCharacterTags = async (): Promise<string[]> => {
+    const { data, error } = await supabase
+        .from('characters')
+        .select('tags')
+        .not('tags', 'is', null)
+    if (error) throw error
+    const all = (data ?? []).flatMap((c: any) => c.tags ?? [])
+    return [...new Set(all)].sort()
+}
+
 // キャラクター一覧をページネーション付きで取得
 // 各アニメの上位3キャラ優先 → アニメ人気順 → キャラお気に入り数順
-export const fetchCharacters = async (page: number = 1, perPage: number = 12, searchQuery: string = ''): Promise<{ characters: Character[], total: number }> => {
+// タグ指定時は直接クエリに切り替え（お気に入り数順）
+export const fetchCharacters = async (
+    page: number = 1,
+    perPage: number = 12,
+    searchQuery: string = '',
+    tagFilter: string = '',
+): Promise<{ characters: Character[], total: number }> => {
     const offset = (page - 1) * perPage
+
+    if (tagFilter) {
+        let query = supabase
+            .from('characters')
+            .select('*', { count: 'exact' })
+            .contains('tags', [tagFilter])
+        if (searchQuery) query = query.ilike('name', `%${searchQuery}%`)
+        query = query
+            .order('favourites', { ascending: false, nullsFirst: false })
+            .range(offset, offset + perPage - 1)
+        const { data, error, count } = await query
+        if (error) throw error
+        return { characters: (data ?? []) as Character[], total: count ?? 0 }
+    }
 
     const [{ data, error: rpcError }, { count, error: countError }] = await Promise.all([
         supabase.rpc('get_characters_list', {

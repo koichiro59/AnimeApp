@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { fetchAnimes } from '../lib/db'
+import { fetchAnimes, fetchGenres } from '../lib/db'
 import { fetchAnimeImages } from '../lib/anilistApi'
 import { setAnimeImageCache, getAnimeImageCache } from '../lib/imageCache'
 import type { Anime } from '../types/anime'
@@ -8,6 +8,7 @@ import { AnimeCard } from '../components/anime/AnimeCard'
 import { useDebounce } from '../hooks/useDebounce'
 
 const PER_PAGE = 20
+const YEARS = ['2024', '2025', '2026', '2027']
 
 export const AnimeListPage = () => {
   const [animes, setAnimes] = useState<Anime[]>([])
@@ -16,13 +17,22 @@ export const AnimeListPage = () => {
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [searchInput, setSearchInput] = useState('')
+  const [availableGenres, setAvailableGenres] = useState<string[]>([])
+  const [selectedGenre, setSelectedGenre] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
 
   const debouncedSearch = useDebounce(searchInput, 300)
   const totalPages = Math.ceil(total / PER_PAGE)
+  const hasActiveFilters = selectedGenre !== '' || selectedYear !== ''
+
+  useEffect(() => {
+    fetchGenres().then(setAvailableGenres).catch(console.error)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { animes: data, total } = await fetchAnimes(page, PER_PAGE, debouncedSearch)
+    const genreFilters = selectedGenre ? [selectedGenre] : []
+    const { animes: data, total } = await fetchAnimes(page, PER_PAGE, debouncedSearch, genreFilters, selectedYear)
     setAnimes(data)
     setTotal(total)
 
@@ -39,21 +49,29 @@ export const AnimeListPage = () => {
       setImageMap({ ...cached })
     }
     setLoading(false)
-  }, [page, debouncedSearch])
+  }, [page, debouncedSearch, selectedGenre, selectedYear])
 
   useEffect(() => {
     load()
   }, [load])
 
-  // 検索文字が変わったらページを1に戻す
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch])
+  }, [debouncedSearch, selectedGenre, selectedYear])
 
-  const handleClear = () => {
+  const handleClearAll = () => {
     setSearchInput('')
+    setSelectedGenre('')
+    setSelectedYear('')
     setPage(1)
   }
+
+const selectClass = (active: boolean) =>
+    `text-sm border rounded-full px-4 py-1.5 outline-none cursor-pointer transition-colors appearance-none pr-8 bg-no-repeat bg-[right_0.6rem_center] ${
+      active
+        ? 'border-pink-300 text-pink-600 bg-pink-50 font-medium'
+        : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300'
+    }`
 
   return (
     <div>
@@ -62,11 +80,12 @@ export const AnimeListPage = () => {
         <meta name="description" content="アニレフのアニメ一覧ページ。2024年〜2026年の最新アニメ情報をキャラクターとあわせて調べられます。" />
         <link rel="canonical" href="https://aniref.net/animes" />
       </Helmet>
+
+      {/* ヘッダー */}
       <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-6">
         <div className="max-w-6xl mx-auto flex items-center gap-6">
           <div className="flex-shrink-0">
             <h1 className="text-lg font-bold text-gray-800">アニメ一覧</h1>
-            <p className="text-xs text-gray-400 mt-0.5">作品情報からキャラクター詳細まで調べられる</p>
           </div>
           <div className="flex items-center ml-auto w-72 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -80,7 +99,7 @@ export const AnimeListPage = () => {
               className="flex-1 text-sm text-gray-700 outline-none bg-transparent"
             />
             {searchInput && (
-              <button onClick={handleClear} className="text-gray-300 hover:text-gray-500 transition-colors">
+              <button onClick={() => setSearchInput('')} className="text-gray-300 hover:text-gray-500 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -91,11 +110,55 @@ export const AnimeListPage = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-700">
-            {debouncedSearch ? `「${debouncedSearch}」の検索結果` : 'アニメ一覧'}
-          </h2>
-          <p className="text-sm text-gray-400">{total}件</p>
+        <div className="mb-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className={selectClass(selectedYear !== '')}
+              >
+                <option value="">製作年 すべて</option>
+                {YEARS.map(year => (
+                  <option key={year} value={year}>{year}年</option>
+                ))}
+              </select>
+              <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <div className="relative">
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className={selectClass(selectedGenre !== '')}
+              >
+                <option value="">ジャンル すべて</option>
+                {availableGenres.map(genre => (
+                  <option key={genre} value={genre}>{genre}</option>
+                ))}
+              </select>
+              <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            {(hasActiveFilters || searchInput) && (
+              <button
+                onClick={handleClearAll}
+                className="text-xs text-gray-400 hover:text-pink-500 transition-colors flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                クリア
+              </button>
+            )}
+            <p className="text-sm text-gray-400">{total}件</p>
+          </div>
         </div>
 
         {loading ? (
@@ -104,9 +167,13 @@ export const AnimeListPage = () => {
           </div>
         ) : animes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-2">
-            <p className="text-gray-400">「{debouncedSearch}」に一致するアニメが見つかりませんでした</p>
-            <button onClick={handleClear} className="text-sm text-pink-500 hover:underline">
-              検索をクリア
+            <p className="text-gray-400">
+              {debouncedSearch
+                ? `「${debouncedSearch}」に一致するアニメが見つかりませんでした`
+                : '条件に一致するアニメが見つかりませんでした'}
+            </p>
+            <button onClick={handleClearAll} className="text-sm text-pink-500 hover:underline">
+              条件をクリア
             </button>
           </div>
         ) : (
@@ -144,10 +211,11 @@ export const AnimeListPage = () => {
                       <button
                         key={p}
                         onClick={() => setPage(p as number)}
-                        className={`w-9 h-9 text-sm rounded-lg border transition-colors ${page === p
+                        className={`w-9 h-9 text-sm rounded-lg border transition-colors ${
+                          page === p
                             ? 'bg-pink-50 border-pink-200 text-pink-600 font-medium'
                             : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-                          }`}
+                        }`}
                       >
                         {p}
                       </button>
