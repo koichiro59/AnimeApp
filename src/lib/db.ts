@@ -2,6 +2,21 @@ import { supabase } from './supabase'
 import type { Anime } from '../types/anime'
 import type { Character } from '../types/character'
 
+const roleRank = (role: Character['role']): number => {
+    if (role === 'SUPPORTING') return 2
+    if (role === 'BACKGROUND') return 3
+    return 1  // MAIN および NULL (未設定=MAINの可能性が高い) を最優先
+}
+
+const sortCharacters = (characters: Character[]): Character[] =>
+    [...characters].sort((a, b) => {
+        const roleDiff = roleRank(a.role) - roleRank(b.role)
+        if (roleDiff !== 0) return roleDiff
+        const favDiff = (b.favourites ?? 0) - (a.favourites ?? 0)
+        if (favDiff !== 0) return favDiff
+        return a.character_id.localeCompare(b.character_id)
+    })
+
 // アニメ一覧をページネーション付きで取得
 export const fetchAnimes = async (page: number = 1, perPage: number = 12, searchQuery: string = ''): Promise<{ animes: Anime[], total: number }> => {
     const from = (page - 1) * perPage
@@ -63,11 +78,9 @@ export const fetchCharactersPreview = async (animeId: string, limit: number = 3)
         .from('characters')
         .select('*')
         .eq('anime_id', animeId)
-        .order('character_id', { ascending: true })
-        .limit(limit)
 
     if (error) throw error
-    return data
+    return sortCharacters(data).slice(0, limit)
 }
 
 // キャラクター一覧をアニメIDで取得
@@ -76,10 +89,9 @@ export const fetchCharactersByAnimeId = async (animeId: string): Promise<Charact
         .from('characters')
         .select('*')
         .eq('anime_id', animeId)
-        .order('character_id', { ascending: true })
 
     if (error) throw error
-    return data
+    return sortCharacters(data)
 }
 
 // キャラクター詳細を1件取得

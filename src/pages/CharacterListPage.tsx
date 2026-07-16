@@ -7,7 +7,7 @@ import type { Character } from '../types/character'
 import { CharacterCard } from '../components/character/CharacterCard'
 import { useDebounce } from '../hooks/useDebounce'
 
-const PER_PAGE = 12
+const PER_PAGE = 24
 
 export const CharacterListPage = () => {
     const [characters, setCharacters] = useState<Character[]>([])

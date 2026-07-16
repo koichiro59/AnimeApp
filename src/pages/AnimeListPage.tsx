@@ -7,7 +7,7 @@ import type { Anime } from '../types/anime'
 import { AnimeCard } from '../components/anime/AnimeCard'
 import { useDebounce } from '../hooks/useDebounce'
 
-const PER_PAGE = 12
+const PER_PAGE = 20
 
 export const AnimeListPage = () => {
   const [animes, setAnimes] = useState<Anime[]>([])

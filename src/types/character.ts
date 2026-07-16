@@ -16,4 +16,5 @@ export type Character = {
   popularity: number | null
   favourites: number | null
   anime_rank: number | null
+  role: 'MAIN' | 'SUPPORTING' | 'BACKGROUND' | null
 }
