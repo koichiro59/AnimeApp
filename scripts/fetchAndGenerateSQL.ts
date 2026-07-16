@@ -311,6 +311,7 @@ const fetchCharacters = async (animeId: number): Promise<any[]> => {
                 bloodType
                 dateOfBirth { year month day }
                 description(asHtml: false)
+                favourites
               }
             }
           }
@@ -518,14 +519,14 @@ const main = async () => {
     }
 
     // 全年分のSQLファイルからanilist_idと制作会社を読み込む（重複チェック用）
-    const allSqlFiles = fs.readdirSync('scripts')
+    const allSqlFiles = fs.readdirSync('scripts/sql/data')
         .filter((f: string) => f.match(/^output_\d{4}\.sql$/))
         .sort()
 
     if (allSqlFiles.length > 0) {
         console.log(`📂 既存SQLファイルを読み込み中: ${allSqlFiles.join(', ')}`)
         for (const file of allSqlFiles) {
-            const content = fs.readFileSync(`scripts/${file}`, 'utf8')
+            const content = fs.readFileSync(`scripts/sql/data/${file}`, 'utf8')
 
             for (const match of content.matchAll(/INSERT INTO animes .+, (\d+)\) ON CONFLICT/g)) {
                 seenAnimeAnilistIds.add(Number(match[1]))
@@ -554,7 +555,7 @@ const main = async () => {
         console.log(`  既存キャラ: ${seenCharacterAnilistIds.size}件`)
     }
 
-    const outputFile = `scripts/output_${targetYear}.sql`
+    const outputFile = `scripts/sql/data/output_${targetYear}.sql`
 
     for (const season of seasons) {
         console.log(`\n取得中: ${targetYear}年 ${season}...`)
@@ -683,7 +684,7 @@ const main = async () => {
                 }
 
                 characterInserts.push(
-                    `INSERT INTO characters (character_id, anime_id, name, description, age, gender, image_url, birthday, blood_type, voice_actor, height, anilist_id, role) VALUES (${esc(characterId)}, ${esc(animeId)}, ${esc(charName)}, ${esc(description)}, ${parseAge(char.age)}, ${esc(normalizeGender(char.gender))}, ${esc(imageUrl)}, ${esc(birthday)}, ${esc(bloodType)}, ${esc(voiceActor)}, ${height ?? 'NULL'}, ${char.id}, ${esc(edge.role)}) ON CONFLICT DO NOTHING;`
+                    `INSERT INTO characters (character_id, anime_id, name, description, age, gender, image_url, birthday, blood_type, voice_actor, height, anilist_id, role, favourites) VALUES (${esc(characterId)}, ${esc(animeId)}, ${esc(charName)}, ${esc(description)}, ${parseAge(char.age)}, ${esc(normalizeGender(char.gender))}, ${esc(imageUrl)}, ${esc(birthday)}, ${esc(bloodType)}, ${esc(voiceActor)}, ${height ?? 'NULL'}, ${char.id}, ${esc(edge.role)}, ${char.favourites ?? 'NULL'}) ON CONFLICT DO NOTHING;`
                 )
             }
 
@@ -714,7 +715,7 @@ const main = async () => {
         ...[...unmatchedGenres].map(g => `genre,${g}`),
         ...[...unmatchedProductions].map(p => `production,${p}`),
     ]
-    const unmatchedFile = `scripts/unmatched_${targetYear}.csv`
+    const unmatchedFile = `scripts/archive/unmatched_${targetYear}.csv`
     fs.writeFileSync(unmatchedFile, unmatchedRows.join('\n'), 'utf8')
     console.log(`\n📋 未マッチ一覧: ${unmatchedFile}`)
     console.log(`  ジャンル未マッチ: ${unmatchedGenres.size}件`)
