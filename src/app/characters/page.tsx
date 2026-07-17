@@ -7,6 +7,13 @@ import { useDebounce } from '@/hooks/useDebounce'
 
 const PER_PAGE = 24
 
+const selectClass = (active: boolean) =>
+  `text-sm border rounded-full px-4 py-1.5 outline-none cursor-pointer transition-colors appearance-none pr-8 bg-no-repeat bg-[right_0.6rem_center] ${
+    active
+      ? 'border-pink-300 text-pink-600 bg-pink-50 font-medium'
+      : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300'
+  }`
+
 const TAG_CATEGORIES: { label: string; tags: string[] }[] = [
   { label: '髪色', tags: ['金髪', '銀髪', '黒髪', '茶髪', '赤髪', 'ピンク髪', '青髪', '緑髪', '紫髪', 'ツートーン', '白髪'] },
   { label: '髪型', tags: ['ツインテール', 'ポニーテール', 'ロングヘア', 'ショートヘア', 'ボブカット', 'ツーサイドアップ'] },
@@ -77,28 +84,26 @@ export default function CharacterListPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-6">
-        <div className="mb-6 space-y-3">
+        <div className="mb-6 flex flex-wrap gap-2">
           {TAG_CATEGORIES.map(({ label, tags }) => {
             const available = tags.filter((t) => dbTags.has(t))
             if (available.length === 0) return null
+            const value = available.includes(selectedTag) ? selectedTag : ''
             return (
-              <div key={label} className="flex items-start gap-3">
-                <span className="text-xs text-gray-400 pt-1.5 w-20 flex-shrink-0">{label}</span>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="relative" key={label}>
+                <select
+                  value={value}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className={selectClass(value !== '')}
+                >
+                  <option value="">{label}</option>
                   {available.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
-                      className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                        selectedTag === tag
-                          ? 'bg-pink-500 text-white border-pink-500'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
-                      }`}
-                    >
-                      {tag}
-                    </button>
+                    <option key={tag} value={tag}>{tag}</option>
                   ))}
-                </div>
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             )
           })}
