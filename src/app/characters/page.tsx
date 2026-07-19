@@ -58,10 +58,10 @@ export default function CharacterListPage() {
 
   return (
     <div>
-      <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-6">
-        <div className="max-w-6xl mx-auto flex items-center gap-6">
+      <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
           <h1 className="text-lg font-bold text-gray-800 flex-shrink-0">キャラクター一覧</h1>
-          <div className="flex items-center ml-auto w-72 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
+          <div className="flex items-center sm:ml-auto w-full sm:w-72 bg-white border border-gray-200 rounded-full px-4 py-2 gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
             </svg>
@@ -83,7 +83,7 @@ export default function CharacterListPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <div className="mb-6 flex flex-wrap gap-2">
           {TAG_CATEGORIES.map(({ label, tags }) => {
             const available = tags.filter((t) => dbTags.has(t))

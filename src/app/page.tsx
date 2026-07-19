@@ -78,20 +78,20 @@ export default async function HomePage() {
 
   return (
     <>
-      <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-6">
+      <div className="bg-gradient-to-r from-pink-50 to-white border-b border-gray-100 py-5 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-gray-800 leading-snug">気になるキャラから、アニメを見つけよう</h1>
+            <h1 className="text-base sm:text-lg font-bold text-gray-800 leading-snug">気になるキャラから、アニメを見つけよう</h1>
             <p className="text-xs text-gray-400 mt-1">登場キャラクターのビジュアルと詳細から、次に観るアニメが見つかるサイトです</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:flex-shrink-0">
             <Link href="/animes" className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-4 py-2 rounded-full transition-colors whitespace-nowrap">アニメ一覧</Link>
             <Link href="/characters" className="bg-white border border-gray-200 hover:border-pink-200 text-gray-600 hover:text-pink-600 text-xs font-medium px-4 py-2 rounded-full transition-colors whitespace-nowrap">キャラ一覧</Link>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="flex items-center justify-between mb-7">
           <div>
             <h2 className="text-lg font-semibold text-gray-800">ピックアップ</h2>
