@@ -240,6 +240,17 @@ const PRODUCTION_MAP: Record<string, string> = {
     'Studio 4°C': 'スタジオ4℃',
     'Space Neko Company': 'スペースねこカンパニー',
     'FLAGSHIP LINE': 'フラッグシップライン',
+    'Visual Flight': 'Visual Flight',
+    'Hoods Entertainment': 'Hoods Entertainment',
+    'NAS': 'NAS',
+    'Vega Entertainment': 'Vega Entertainment',
+    'Shirogumi': 'Shirogumi',
+    'Bee Media': 'Bee Media',
+    'WolfsBane': 'WolfsBane',
+    'Hotline': 'Hotline',
+    'Sola Digital Arts': 'Sola Digital Arts',
+    'Gambit': 'Gambit',
+    'Sublimation': 'Sublimation',
 }
 
 // ジャンル変換（変換表にないものはnullを返す）

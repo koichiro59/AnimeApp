@@ -19,8 +19,8 @@ const RETRY_WAIT_MS = 65000 // 429 時に待機する時間（1分強）
 const MAX_RETRIES = 3
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL!,
-  process.env.VITE_SUPABASE_ANON_KEY!
+  (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL)!,
+  (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY)!
 )
 
 const isDryRun = process.argv.includes('--dry-run')

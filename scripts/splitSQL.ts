@@ -1,78 +1,111 @@
 /**
- * add_image_urls.sql を Supabase SQL Editor で実行できるサイズに分割するスクリプト
+ * SQLファイルをUTF-8（BOMなし）のまま分割するスクリプト
  *
- * 使い方: npx tsx scripts/splitSQL.ts
+ * 使い方:
+ *   npx tsx scripts/splitSQL.ts <sqlファイルパス> [分割数]
+ *
+ * 例:
+ *   npx tsx scripts/splitSQL.ts scripts/sql/data/output_2021.sql 4
+ *
+ * 動作:
+ *   - "-- キャラクター" より前をPart1（メタデータ）として出力
+ *   - キャラクター行を残りの (分割数-1) 等分に分割
+ *   - 出力: output_2021_part1.sql, output_2021_part2.sql, ...
  */
+
 import * as fs from 'fs'
 import * as path from 'path'
 
-const INPUT = 'scripts/sql/add_image_urls.sql'
-const OUTPUT_DIR = 'scripts/sql/split'
-const CHUNK_SIZE = 1000 // 1ファイルあたりの UPDATE 件数
+const args = process.argv.slice(2)
+if (args.length < 1) {
+    console.error('使い方: npx tsx scripts/splitSQL.ts <sqlファイルパス> [分割数]')
+    process.exit(1)
+}
 
-const content = fs.readFileSync(INPUT, 'utf-8')
+const inputPath = args[0]
+const numParts = parseInt(args[1] ?? '4', 10)
+
+if (!fs.existsSync(inputPath)) {
+    console.error(`ファイルが見つかりません: ${inputPath}`)
+    process.exit(1)
+}
+
+if (numParts < 2 || numParts > 20) {
+    console.error('分割数は2〜20の範囲で指定してください')
+    process.exit(1)
+}
+
+// BOMなしUTF-8で読み込む（BOMが混入していても除去）
+const rawBuf = fs.readFileSync(inputPath)
+const hasBomInput = rawBuf[0] === 0xEF && rawBuf[1] === 0xBB && rawBuf[2] === 0xBF
+const content = hasBomInput ? rawBuf.slice(3).toString('utf8') : rawBuf.toString('utf8')
+if (hasBomInput) console.warn('⚠️  入力ファイルのBOMを検出・除去しました')
+
 const lines = content.split('\n')
 
-const alterLines: string[] = []
-const animeLines: string[] = []
-const charLines: string[] = []
+// "-- キャラクター" の最後の出現行を境界にする
+// （テスト実行分と本番実行分で複数セクションがある場合、最後のものを使う）
+const charSectionIndex = lines.reduce((last, l, i) => l.trim() === '-- キャラクター' ? i : last, -1)
 
-let section: 'alter' | 'anime' | 'char' = 'alter'
+let metaLines: string[]
+let charLines: string[]
 
-for (const line of lines) {
-  if (line.startsWith('-- キャラクター')) {
-    section = 'char'
-    continue
-  }
-  if (line.startsWith('-- アニメ')) {
-    section = 'anime'
-    continue
-  }
-  if (line.trim() === '' || line.startsWith('--')) continue
-
-  if (section === 'alter') alterLines.push(line)
-  else if (section === 'anime') animeLines.push(line)
-  else charLines.push(line)
+if (charSectionIndex === -1) {
+    console.log('ℹ️  キャラクターセクションが見つからないため均等分割します')
+    metaLines = []
+    charLines = lines
+} else {
+    metaLines = lines.slice(0, charSectionIndex)
+    charLines = lines.slice(charSectionIndex)
+    console.log(`📋 メタデータ: ${metaLines.length}行`)
+    console.log(`👥 キャラクター: ${charLines.length}行`)
 }
 
-fs.mkdirSync(OUTPUT_DIR, { recursive: true })
+const dir = path.dirname(inputPath)
+const base = path.basename(inputPath, '.sql')
+const outputFiles: string[] = []
 
-// ファイル番号管理
-let fileIndex = 1
-
-function writeChunk(label: string, sqlLines: string[], header: string) {
-  for (let i = 0; i < sqlLines.length; i += CHUNK_SIZE) {
-    const chunk = sqlLines.slice(i, i + CHUNK_SIZE)
-    const from = i + 1
-    const to = Math.min(i + CHUNK_SIZE, sqlLines.length)
-    const filename = path.join(OUTPUT_DIR, `part${String(fileIndex).padStart(2, '0')}_${label}_${from}-${to}.sql`)
-    fs.writeFileSync(filename, `-- ${header} (${from}〜${to}件目)\n` + chunk.join('\n') + '\n', 'utf-8')
-    console.log(`✅ ${path.basename(filename)} (${chunk.length}件)`)
-    fileIndex++
-  }
+// BOMなしUTF-8で書き込むヘルパー
+function writeUtf8(filePath: string, text: string) {
+    fs.writeFileSync(filePath, Buffer.from(text, 'utf8'))
 }
 
-// Part 01: ALTER TABLE + アニメ UPDATE
-const part01 = [
-  '-- Step 1: animes テーブルに image_url カラムを追加',
-  ...alterLines,
-  '',
-  `-- Step 2: アニメ画像URL 更新 (${animeLines.length}件)`,
-  ...animeLines,
-].join('\n') + '\n'
-
-const part01Path = path.join(OUTPUT_DIR, 'part01_alter_and_animes.sql')
-fs.writeFileSync(part01Path, part01, 'utf-8')
-console.log(`✅ part01_alter_and_animes.sql (ALTER 1件 + アニメ ${animeLines.length}件)`)
-fileIndex++
-
-// Part 02〜: キャラクター UPDATE を CHUNK_SIZE ずつ分割
-writeChunk('characters', charLines, 'キャラクター画像URL 更新')
-
-console.log(`\n📁 出力先: ${OUTPUT_DIR}/`)
-console.log(`📋 合計ファイル数: ${fileIndex - 1} ファイル`)
-console.log('\n実行順序:')
-for (let i = 1; i < fileIndex; i++) {
-  const files = fs.readdirSync(OUTPUT_DIR).sort()
-  if (files[i - 1]) console.log(`  ${i}. ${files[i - 1]}`)
+function verifyNoBom(filePath: string): boolean {
+    const buf = fs.readFileSync(filePath)
+    return !(buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF)
 }
+
+if (metaLines.length > 0) {
+    // Part1 = メタデータ
+    const part1Path = path.join(dir, `${base}_part1.sql`)
+    writeUtf8(part1Path, metaLines.join('\n'))
+    outputFiles.push(part1Path)
+
+    // 残りをキャラクター (numParts-1) 等分
+    const charParts = numParts - 1
+    const chunkSize = Math.ceil(charLines.length / charParts)
+    for (let i = 0; i < charParts; i++) {
+        const chunk = charLines.slice(i * chunkSize, Math.min((i + 1) * chunkSize, charLines.length))
+        const partPath = path.join(dir, `${base}_part${i + 2}.sql`)
+        writeUtf8(partPath, chunk.join('\n'))
+        outputFiles.push(partPath)
+    }
+} else {
+    // メタデータなし: 均等分割
+    const chunkSize = Math.ceil(charLines.length / numParts)
+    for (let i = 0; i < numParts; i++) {
+        const chunk = charLines.slice(i * chunkSize, Math.min((i + 1) * chunkSize, charLines.length))
+        const partPath = path.join(dir, `${base}_part${i + 1}.sql`)
+        writeUtf8(partPath, chunk.join('\n'))
+        outputFiles.push(partPath)
+    }
+}
+
+// 結果表示
+console.log('\n=== 出力結果 ===')
+for (const [i, f] of outputFiles.entries()) {
+    const lineCount = fs.readFileSync(f, 'utf8').split('\n').length
+    const bomOk = verifyNoBom(f)
+    console.log(`  Part${i + 1}: ${path.basename(f)} (${lineCount}行) ${bomOk ? '✅ BOMなし' : '❌ BOM付き'}`)
+}
+console.log('\n🎉 完了!')

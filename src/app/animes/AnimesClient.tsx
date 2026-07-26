@@ -6,7 +6,7 @@ import { AnimeCard } from '@/components/anime/AnimeCard'
 import { useDebounce } from '@/hooks/useDebounce'
 
 const PER_PAGE = 20
-const START_YEAR = 2022
+const START_YEAR = 2021
 const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: currentYear - START_YEAR + 2 }, (_, i) => String(START_YEAR + i))
 
