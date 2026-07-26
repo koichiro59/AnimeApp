@@ -17,16 +17,20 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const anime = await fetchAnimeById(id)
   if (!anime) return { title: 'アニレフ' }
 
+  const seasonStr = anime.broadcast_season ? `（${anime.broadcast_season}）` : ''
+  const genreStr = anime.genres?.slice(0, 3).join('・')
+  const titleStr = `${anime.title}${seasonStr}`
+
   const description = anime.synopsis
-    ? `${anime.synopsis.slice(0, 100)}…`
-    : `${anime.title}の登場キャラクターやあらすじ情報をチェック。`
+    ? `${titleStr}${anime.synopsis.slice(0, 90)}…`
+    : `${titleStr}の登場キャラクター一覧。${genreStr ? `ジャンル：${genreStr}。` : ''}アニレフで詳細をチェック。`
 
   return {
-    title: `${anime.title} | アニレフ`,
+    title: `${titleStr} | アニレフ`,
     description,
     alternates: { canonical: `https://aniref.net/anime/${id}` },
     openGraph: {
-      title: `${anime.title} | アニレフ`,
+      title: `${titleStr} | アニレフ`,
       description,
       url: `https://aniref.net/anime/${id}`,
       images: anime.image_url ? [{ url: anime.image_url }] : [],

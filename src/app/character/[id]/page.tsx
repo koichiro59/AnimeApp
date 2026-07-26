@@ -1,25 +1,41 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchCharacterById, fetchAnimeById } from '@/lib/db'
+import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds } from '@/lib/db'
 import { notFound } from 'next/navigation'
 
+export const dynamicParams = true
 export const revalidate = 86400
+
+export async function generateStaticParams() {
+  const ids = await fetchAllCharacterIds()
+  return ids.map((id) => ({ id }))
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
   const character = await fetchCharacterById(id)
   if (!character) return { title: 'アニレフ' }
 
-  const description = character.description
-    ? `${character.description.slice(0, 100)}…`
-    : `${character.name}のキャラクター情報。アニレフで詳細をチェック。`
+  const anime = character.anime_id ? await fetchAnimeById(character.anime_id) : null
+  const titleStr = anime ? `${character.name}（${anime.title}）` : character.name
+
+  let description: string
+  if (character.description) {
+    description = `${character.description.slice(0, 100)}…`
+  } else {
+    const parts: string[] = []
+    if (anime) parts.push(`${anime.title}の登場キャラクター`)
+    if (character.tags?.length) parts.push(character.tags.slice(0, 3).join('・'))
+    if (character.voice_actor) parts.push(`CV：${character.voice_actor}`)
+    description = `${titleStr}。${parts.join('。')}。`
+  }
 
   return {
-    title: `${character.name} | アニレフ`,
+    title: `${titleStr} | アニレフ`,
     description,
     alternates: { canonical: `https://aniref.net/character/${id}` },
     openGraph: {
-      title: `${character.name} | アニレフ`,
+      title: `${titleStr} | アニレフ`,
       description,
       url: `https://aniref.net/character/${id}`,
       images: character.image_url ? [{ url: character.image_url }] : [],
