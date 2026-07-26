@@ -443,7 +443,8 @@ async function main() {
 
     // SQLファイル出力
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    const outPath = `scripts/sql/patches/14_enrich_v2_${timestamp}.sql`
+    const rangeLabel = `offset${ANIME_OFFSET}-${ANIME_OFFSET + ANIME_LIMIT - 1}`
+    const outPath = `scripts/sql/patches/15_enrich_${rangeLabel}_${timestamp}.sql`
     fs.writeFileSync(outPath, sqlLines.join('\n'), 'utf8')
 
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')

@@ -15,7 +15,9 @@ if (!targetYear || isNaN(targetYear)) {
     process.exit(1)
 }
 const skipTranslation = args.includes('--no-translate')
-console.log(`📅 ${targetYear}年のアニメを取得します${skipTranslation ? '（翻訳スキップ）' : ''}`)
+const limitArg = args.find(a => a.startsWith('--limit='))
+const animeLimit = limitArg ? parseInt(limitArg.split('=')[1]) : Infinity
+console.log(`📅 ${targetYear}年のアニメを取得します${skipTranslation ? '（翻訳スキップ）' : ''}${isFinite(animeLimit) ? `（最大${animeLimit}件）` : ''}`)
 
 // 日本語かどうかチェック
 const isJapanese = (text: string | null | undefined): boolean => {
@@ -225,6 +227,19 @@ const PRODUCTION_MAP: Record<string, string> = {
     'Sakura Create': '作楽クリエイト',
     'Acca effe': 'Acca effe',
     'Live2D Creative Studio': 'Live2D Creative Studio',
+    'OZ': 'OZ',
+    'Graphinica': 'グラフィニカ',
+    'Kigumi': 'Kigumi',
+    'Encourage Films': 'エンカレッジフィルムズ',
+    'Studio 3Hz': '3Hz',
+    'Bibury Animation CG': 'ビーバリーアニメーションCG',
+    'ARMS': 'アームス',
+    'Sunrise Beyond': 'サンライズビヨンド',
+    'REVOROOT': 'REVOROOT',
+    'NAZ': 'NAZ',
+    'Studio 4°C': 'スタジオ4℃',
+    'Space Neko Company': 'スペースねこカンパニー',
+    'FLAGSHIP LINE': 'フラッグシップライン',
 }
 
 // ジャンル変換（変換表にないものはnullを返す）
@@ -561,8 +576,10 @@ const main = async () => {
     }
 
     const outputFile = `scripts/sql/data/output_${targetYear}.sql`
+    let totalAnimeProcessed = 0
 
     for (const season of seasons) {
+        if (totalAnimeProcessed >= animeLimit) break
         console.log(`\n取得中: ${targetYear}年 ${season}...`)
 
         const animes = await fetchAnimes(targetYear, season)
@@ -575,6 +592,10 @@ const main = async () => {
         console.log(`  ${animes.length}件取得`)
 
         for (const anime of animes) {
+            if (totalAnimeProcessed >= animeLimit) {
+                console.log(`  ⏹️  --limit=${animeLimit} に達したため停止`)
+                break
+            }
             const title: string = anime.title.native ?? anime.title.romaji
 
             // アニメの重複スキップ
@@ -583,6 +604,7 @@ const main = async () => {
                 continue
             }
             seenAnimeAnilistIds.add(anime.id)
+            totalAnimeProcessed++
 
             const animeId = `AN${String(animeCounter).padStart(4, '0')}`
             animeCounter++
