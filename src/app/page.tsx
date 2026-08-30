@@ -7,7 +7,7 @@ import type { Character } from '@/types/character'
 export const metadata: Metadata = {
   title: 'アニレフ - キャラクターで選ぶアニメ情報サイト',
   description: 'キャラクターから気になるアニメを見つけよう。アニレフはキャラクター情報を中心としたアニメ情報サイトです。',
-  alternates: { canonical: 'https://aniref.net/' },
+  alternates: { canonical: 'https://aniref.net' },
 }
 
 export const revalidate = 3600

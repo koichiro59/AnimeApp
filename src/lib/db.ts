@@ -128,6 +128,24 @@ export const fetchAllCharacterIds = async (): Promise<string[]> => {
   return results
 }
 
+export const fetchIndexableCharacterIds = async (): Promise<string[]> => {
+  const results: string[] = []
+  const PAGE = 1000
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('characters')
+      .select('character_id')
+      .or('description.not.is.null,image_url.not.is.null')
+      .range(from, from + PAGE - 1)
+    if (error) throw error
+    results.push(...(data ?? []).map((c: { character_id: string }) => c.character_id))
+    if ((data ?? []).length < PAGE) break
+    from += PAGE
+  }
+  return results
+}
+
 export const fetchCharacterTags = async (): Promise<string[]> => {
   const { data, error } = await supabase
     .from('characters').select('tags').not('tags', 'is', null)

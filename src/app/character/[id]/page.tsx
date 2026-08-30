@@ -30,10 +30,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     description = `${titleStr}。${parts.join('。')}。`
   }
 
+  const isThinContent = !character.description && (!character.tags || character.tags.length < 3)
+
   return {
     title: `${titleStr} | アニレフ`,
     description,
     alternates: { canonical: `https://aniref.net/character/${id}` },
+    ...(isThinContent && { robots: { index: false, follow: true } }),
     openGraph: {
       title: `${titleStr} | アニレフ`,
       description,

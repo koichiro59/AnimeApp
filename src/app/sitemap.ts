@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { fetchAllAnimeIds, fetchAllCharacterIds } from '@/lib/db'
+import { fetchAllAnimeIds, fetchIndexableCharacterIds } from '@/lib/db'
 
 export const revalidate = 86400
 
@@ -8,7 +8,7 @@ const BASE_URL = 'https://aniref.net'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [animeIds, characterIds] = await Promise.all([
     fetchAllAnimeIds(),
-    fetchAllCharacterIds(),
+    fetchIndexableCharacterIds(),
   ])
 
   const staticRoutes: MetadataRoute.Sitemap = [
