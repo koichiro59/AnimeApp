@@ -59,6 +59,29 @@ export const buildCharacterDescription = (character: Character, anime: Anime | n
 }
 
 /**
+ * meta description 用の属性前出し文（約120字）。
+ * 「キャラ名 声優/年齢/誕生日」等の検索クエリに一致しやすくCTRを高める。
+ */
+export const buildMetaDescription = (character: Character, anime: Anime | null): string => {
+  const parts: string[] = []
+  parts.push(anime ? `${character.name}（${anime.title}）の情報` : `${character.name}の情報`)
+  if (character.voice_actor) parts.push(`声優は${character.voice_actor}`)
+  const attrs: string[] = []
+  if (character.age != null) attrs.push(`年齢${character.age}歳`)
+  if (character.height != null) attrs.push(`身長${character.height}cm`)
+  if (character.birthday) attrs.push(`誕生日${character.birthday}`)
+  if (character.gender && character.gender !== 'なし') attrs.push(character.gender)
+  if (attrs.length) parts.push(attrs.join('・'))
+  const base = `${parts.join('。')}。`
+  // 説明文があれば余白に先頭を足して情報量を上げる
+  if (character.description) {
+    const room = 118 - base.length
+    if (room > 12) return `${base}${character.description.slice(0, room)}…`
+  }
+  return base.length > 120 ? `${base.slice(0, 119)}…` : base
+}
+
+/**
  * ページをインデックス対象にして良いだけの情報量があるか。
  * 名前と性別しか無いような本当に空のページは noindex のままにする。
  */

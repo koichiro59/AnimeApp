@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds, fetchCharactersByAnimeId } from '@/lib/db'
-import { buildCharacterDescription, hasRichData } from '@/lib/characterText'
+import { buildCharacterDescription, buildMetaDescription, hasRichData } from '@/lib/characterText'
 import { notFound } from 'next/navigation'
 
 export const dynamicParams = true
@@ -20,9 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const anime = character.anime_id ? await fetchAnimeById(character.anime_id) : null
   const titleStr = anime ? `${character.name}（${anime.title}）` : character.name
 
-  const description = character.description
-    ? `${character.description.slice(0, 100)}…`
-    : `${buildCharacterDescription(character, anime).slice(0, 110)}…`
+  const description = buildMetaDescription(character, anime)
 
   const isThinContent = !hasRichData(character)
 
