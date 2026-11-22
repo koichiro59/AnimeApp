@@ -77,9 +77,44 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
     ...(anime && { worksFor: { '@type': 'TVSeries', name: anime.title } }),
   }
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://aniref.net' },
+      { '@type': 'ListItem', position: 2, name: 'キャラクター', item: 'https://aniref.net/characters' },
+      ...(anime
+        ? [{ '@type': 'ListItem', position: 3, name: anime.title, item: `https://aniref.net/anime/${anime.anime_id}` }]
+        : []),
+      {
+        '@type': 'ListItem',
+        position: anime ? 4 : 3,
+        name: character.name,
+        item: `https://aniref.net/character/${id}`,
+      },
+    ],
+  }
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+
+      <nav aria-label="パンくず" className="max-w-2xl mx-auto px-4 pt-6">
+        <ol className="flex flex-wrap items-center gap-1 text-xs text-gray-400">
+          <li><Link href="/" className="hover:text-pink-500">ホーム</Link></li>
+          <li aria-hidden>/</li>
+          <li><Link href="/characters" className="hover:text-pink-500">キャラクター</Link></li>
+          {anime && (
+            <>
+              <li aria-hidden>/</li>
+              <li><Link href={`/anime/${anime.anime_id}`} className="hover:text-pink-500 truncate max-w-[12rem]">{anime.title}</Link></li>
+            </>
+          )}
+          <li aria-hidden>/</li>
+          <li className="text-gray-600 truncate max-w-[10rem]">{character.name}</li>
+        </ol>
+      </nav>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         {anime && (
