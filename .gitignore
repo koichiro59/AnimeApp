@@ -24,3 +24,7 @@ out/
 *.njsproj
 *.sln
 *.sw?
+
+# AniListバックフィルの生成物(ユーザー手動適用・継続生成中)
+scripts/sql/patches/16_backfill_anilist_free.sql
+scripts/backfill_progress.log
