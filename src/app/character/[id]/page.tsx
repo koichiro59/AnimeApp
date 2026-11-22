@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds } from '@/lib/db'
+import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds, fetchCharactersByAnimeId } from '@/lib/db'
 import { buildCharacterDescription, hasRichData } from '@/lib/characterText'
 import { notFound } from 'next/navigation'
 
@@ -50,6 +50,13 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
   if (!character) notFound()
 
   const anime = character.anime_id ? await fetchAnimeById(character.anime_id) : null
+
+  // 同じ作品の他キャラへの内部リンク（クロール経路を増やしインデックスを促進）
+  const siblings = character.anime_id
+    ? (await fetchCharactersByAnimeId(character.anime_id))
+        .filter((c) => c.character_id !== character.character_id)
+        .slice(0, 12)
+    : []
 
   // 説明文が無いキャラは既存フィールドから紹介文を生成して表示する
   const generatedText = buildCharacterDescription(character, anime)
@@ -144,6 +151,30 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
             </div>
           )}
         </div>
+
+        {siblings.length > 0 && anime && (
+          <div className="mt-8">
+            <h2 className="text-base font-bold text-gray-800 mb-3">
+              「{anime.title}」の他のキャラクター
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {siblings.map((c) => (
+                <Link
+                  key={c.character_id}
+                  href={`/character/${c.character_id}`}
+                  className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 p-2 hover:border-pink-300 transition-colors"
+                >
+                  {c.image_url ? (
+                    <img src={c.image_url} alt={c.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0" />
+                  )}
+                  <span className="text-xs font-medium text-gray-700 truncate">{c.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
