@@ -70,6 +70,10 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
     name: character.name,
     description,
     url: `https://aniref.net/character/${id}`,
+    ...(character.image_url && { image: character.image_url }),
+    ...(character.gender === '男性' && { gender: 'Male' }),
+    ...(character.gender === '女性' && { gender: 'Female' }),
+    ...(character.height != null && { height: `${character.height} cm` }),
     ...(anime && { worksFor: { '@type': 'TVSeries', name: anime.title } }),
   }
 
