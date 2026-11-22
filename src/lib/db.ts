@@ -133,10 +133,14 @@ export const fetchIndexableCharacterIds = async (): Promise<string[]> => {
   const PAGE = 1000
   let from = 0
   while (true) {
+    // ページ側の noindex 判定（hasRichData）と条件を揃える。
+    // image_url はほぼ全件埋まっているため指標にならず、実質的な情報量で絞る。
     const { data, error } = await supabase
       .from('characters')
       .select('character_id')
-      .or('description.not.is.null,image_url.not.is.null')
+      .or(
+        'description.not.is.null,voice_actor.not.is.null,age.not.is.null,height.not.is.null,birthday.not.is.null,tags.not.is.null',
+      )
       .range(from, from + PAGE - 1)
     if (error) throw error
     results.push(...(data ?? []).map((c: { character_id: string }) => c.character_id))

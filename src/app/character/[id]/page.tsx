@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds } from '@/lib/db'
+import { buildCharacterDescription, hasRichData } from '@/lib/characterText'
 import { notFound } from 'next/navigation'
 
 export const dynamicParams = true
@@ -19,18 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const anime = character.anime_id ? await fetchAnimeById(character.anime_id) : null
   const titleStr = anime ? `${character.name}（${anime.title}）` : character.name
 
-  let description: string
-  if (character.description) {
-    description = `${character.description.slice(0, 100)}…`
-  } else {
-    const parts: string[] = []
-    if (anime) parts.push(`${anime.title}の登場キャラクター`)
-    if (character.tags?.length) parts.push(character.tags.slice(0, 3).join('・'))
-    if (character.voice_actor) parts.push(`CV：${character.voice_actor}`)
-    description = `${titleStr}。${parts.join('。')}。`
-  }
+  const description = character.description
+    ? `${character.description.slice(0, 100)}…`
+    : `${buildCharacterDescription(character, anime).slice(0, 110)}…`
 
-  const isThinContent = !character.description && (!character.tags || character.tags.length < 3)
+  const isThinContent = !hasRichData(character)
 
   return {
     title: `${titleStr} | アニレフ`,
@@ -57,9 +51,11 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
 
   const anime = character.anime_id ? await fetchAnimeById(character.anime_id) : null
 
+  // 説明文が無いキャラは既存フィールドから紹介文を生成して表示する
+  const generatedText = buildCharacterDescription(character, anime)
   const description = character.description
     ? `${character.description.slice(0, 100)}…`
-    : `${character.name}のキャラクター情報。${anime ? `登場作品：${anime.title}。` : ''}アニレフで詳細をチェック。`
+    : generatedText.slice(0, 110)
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -106,7 +102,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
                   { label: '性別', value: character.gender },
                   { label: '誕生日', value: character.birthday },
                   { label: '身長', value: character.height ? `${character.height}cm` : null },
-                  { label: '体重', value: character.weight ? `${character.weight}kg` : null },
+                  { label: '血液型', value: character.blood_type ? `${character.blood_type}型` : null },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-gray-50 rounded-lg p-2.5">
                     <p className="text-xs text-gray-400 mb-0.5">{label}</p>
@@ -133,11 +129,11 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
             </div>
           )}
 
-          {character.description && (
-            <div className="px-5 py-4 border-t border-gray-100">
-              <p className="text-sm text-gray-600 leading-relaxed">{character.description}</p>
-            </div>
-          )}
+          <div className="px-5 py-4 border-t border-gray-100">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {character.description ?? generatedText}
+            </p>
+          </div>
 
           {anime && (
             <div className="px-5 py-3 border-t border-gray-100">
