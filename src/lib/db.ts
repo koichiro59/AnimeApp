@@ -113,6 +113,20 @@ export const fetchCharacterById = async (characterId: string): Promise<Character
   return data as Character
 }
 
+// 同じ anilist_id を持つ重複キャラ（作品違いの同一キャラ）の正規ページを返す。
+// 人気(favourites)降順→character_id昇順で決定的に1件を選ぶ。重複の評価分散を防ぐ。
+export const fetchCanonicalCharacterId = async (anilistId: number): Promise<string | null> => {
+  const { data, error } = await supabase
+    .from('characters')
+    .select('character_id')
+    .eq('anilist_id', anilistId)
+    .order('favourites', { ascending: false, nullsFirst: false })
+    .order('character_id', { ascending: true })
+    .limit(1)
+  if (error || !data || data.length === 0) return null
+  return data[0].character_id
+}
+
 export const fetchAllCharacterIds = async (): Promise<string[]> => {
   const results: string[] = []
   const PAGE = 1000

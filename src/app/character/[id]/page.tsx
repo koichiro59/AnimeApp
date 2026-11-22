@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds, fetchCharactersByAnimeId } from '@/lib/db'
+import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds, fetchCharactersByAnimeId, fetchCanonicalCharacterId } from '@/lib/db'
 import { buildCharacterDescription, buildMetaDescription, hasRichData } from '@/lib/characterText'
 import { notFound } from 'next/navigation'
 
@@ -24,15 +24,20 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const isThinContent = !hasRichData(character)
 
+  // 同一キャラ（同anilist_id）の重複ページは正規ページにcanonicalを集約する
+  const canonicalId =
+    (character.anilist_id != null && (await fetchCanonicalCharacterId(character.anilist_id))) || id
+  const canonicalUrl = `https://aniref.net/character/${canonicalId}`
+
   return {
     title: `${titleStr} | アニレフ`,
     description,
-    alternates: { canonical: `https://aniref.net/character/${id}` },
+    alternates: { canonical: canonicalUrl },
     ...(isThinContent && { robots: { index: false, follow: true } }),
     openGraph: {
       title: `${titleStr} | アニレフ`,
       description,
-      url: `https://aniref.net/character/${id}`,
+      url: canonicalUrl,
       images: character.image_url ? [{ url: character.image_url }] : [],
     },
     twitter: {
