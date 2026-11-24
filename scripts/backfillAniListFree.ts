@@ -104,18 +104,35 @@ async function main() {
   const all = await collectTargets()
   const targets = ALL ? all : all.slice(0, LIMIT)
   const thinCount = targets.filter((t) => t.thin).length
-  console.log(`対象 anilist_id: ${targets.length}（うち薄ページ ${thinCount}）  モード:${ALL ? '本番/全件' : `テスト${LIMIT}`}\n`)
 
   const outPath = `scripts/sql/patches/16_backfill_anilist_free${ALL ? '' : '_TEST'}.sql`
-  const out = fs.createWriteStream(outPath)
-  out.write(`-- AniList無料バックフィル(blood_type/birthday/gender) 生成:${new Date().toISOString()}\n`)
-  out.write(`-- 対象:${targets.length} 薄ページ優先\n\n`)
+
+  // レジューム: 既存SQLに書かれた anilist_id はスキップして追記する
+  const done = new Set<number>()
+  const exists = fs.existsSync(outPath)
+  if (exists) {
+    const prev = fs.readFileSync(outPath, 'utf-8')
+    for (const m of prev.matchAll(/WHERE anilist_id = (\d+);/g)) done.add(parseInt(m[1]))
+  }
+  console.log(
+    `対象 anilist_id: ${targets.length}（うち薄ページ ${thinCount}）  モード:${ALL ? '本番/全件' : `テスト${LIMIT}`}` +
+      `${exists ? ` / レジューム:既存${done.size}件スキップ` : ''}\n`,
+  )
+
+  const out = fs.createWriteStream(outPath, { flags: exists ? 'a' : 'w' })
+  if (!exists) {
+    out.write(`-- AniList無料バックフィル(blood_type/birthday/gender) 生成:${new Date().toISOString()}\n`)
+    out.write(`-- 対象:${targets.length} 薄ページ優先\n\n`)
+  } else {
+    out.write(`-- resume ${new Date().toISOString()}\n`)
+  }
 
   let hit = 0,
     birthdayHit = 0,
     i = 0
   for (const t of targets) {
     i++
+    if (done.has(t.anilist_id)) continue // レジューム: 取得済みはスキップ
     const ch = await fetchAniList(t.anilist_id)
     await sleep(750)
     if (!ch) continue
