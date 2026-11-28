@@ -102,7 +102,8 @@ export const fetchCharactersPreview = async (animeId: string, limit: number = 3)
 export const fetchCharactersByAnimeId = async (animeId: string): Promise<Character[]> => {
   const { data, error } = await supabase
     .from('characters').select('*').eq('anime_id', animeId)
-  if (error) throw error
+  // ビルド/ISR中の一時的なSupabaseエラーでページ生成ごと失敗させない（空扱いで継続）
+  if (error) return []
   return sortCharacters(data as Character[])
 }
 

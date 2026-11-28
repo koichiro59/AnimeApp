@@ -1,15 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds, fetchCharactersByAnimeId, fetchCanonicalCharacterId } from '@/lib/db'
+import { fetchCharacterById, fetchAnimeById, fetchCharactersByAnimeId, fetchCanonicalCharacterId } from '@/lib/db'
 import { buildCharacterDescription, buildMetaDescription, hasRichData } from '@/lib/characterText'
 import { notFound } from 'next/navigation'
 
 export const dynamicParams = true
 export const revalidate = 86400
 
+// 20,910ページをビルド時に全生成するとVercelのビルド制限(メモリ/時間/Supabase同時接続)を
+// 超えてデプロイが失敗する。ビルド時は生成せず、初回アクセス時にISRで生成・キャッシュする。
+// (dynamicParams=true / revalidate により、クロール・インデックスには影響しない)
 export async function generateStaticParams() {
-  const ids = await fetchAllCharacterIds()
-  return ids.map((id) => ({ id }))
+  return []
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
