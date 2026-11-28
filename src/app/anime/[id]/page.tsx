@@ -61,21 +61,37 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
     name: anime.title,
     description,
     url: `https://aniref.net/anime/${id}`,
+    ...(anime.image_url && { image: anime.image_url }),
+    ...(anime.genres?.length && { genre: anime.genres }),
     ...(anime.broadcast_season && { startDate: anime.broadcast_season }),
     ...(anime.episodes && { numberOfEpisodes: anime.episodes }),
+  }
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://aniref.net' },
+      { '@type': 'ListItem', position: 2, name: 'アニメ作品', item: 'https://aniref.net/animes' },
+      { '@type': 'ListItem', position: 3, name: anime.title, item: `https://aniref.net/anime/${id}` },
+    ],
   }
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <Link href="/animes" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-pink-500 transition-colors mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          一覧に戻る
-        </Link>
+        <nav aria-label="パンくず" className="mb-4">
+          <ol className="flex flex-wrap items-center gap-1 text-xs text-gray-400">
+            <li><Link href="/" className="hover:text-pink-500">ホーム</Link></li>
+            <li aria-hidden>/</li>
+            <li><Link href="/animes" className="hover:text-pink-500">アニメ作品</Link></li>
+            <li aria-hidden>/</li>
+            <li className="text-gray-600 truncate max-w-[14rem]">{anime.title}</li>
+          </ol>
+        </nav>
 
         <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 mb-8">
           <div className="md:flex">

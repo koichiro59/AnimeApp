@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchCharacterById, fetchAnimeById, fetchAllCharacterIds } from '@/lib/db'
+import { fetchCharacterById, fetchAnimeById, fetchCharactersByAnimeId, fetchCanonicalCharacterId } from '@/lib/db'
+import { buildCharacterDescription, buildMetaDescription, hasRichData } from '@/lib/characterText'
 import { notFound } from 'next/navigation'
 
 export const dynamicParams = true
 export const revalidate = 86400
 
+// 20,910ページをビルド時に全生成するとVercelのビルド制限(メモリ/時間/Supabase同時接続)を
+// 超えてデプロイが失敗する。ビルド時は生成せず、初回アクセス時にISRで生成・キャッシュする。
+// (dynamicParams=true / revalidate により、クロール・インデックスには影響しない)
 export async function generateStaticParams() {
-  const ids = await fetchAllCharacterIds()
-  return ids.map((id) => ({ id }))
+  return []
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -19,28 +22,24 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const anime = character.anime_id ? await fetchAnimeById(character.anime_id) : null
   const titleStr = anime ? `${character.name}（${anime.title}）` : character.name
 
-  let description: string
-  if (character.description) {
-    description = `${character.description.slice(0, 100)}…`
-  } else {
-    const parts: string[] = []
-    if (anime) parts.push(`${anime.title}の登場キャラクター`)
-    if (character.tags?.length) parts.push(character.tags.slice(0, 3).join('・'))
-    if (character.voice_actor) parts.push(`CV：${character.voice_actor}`)
-    description = `${titleStr}。${parts.join('。')}。`
-  }
+  const description = buildMetaDescription(character, anime)
 
-  const isThinContent = !character.description && (!character.tags || character.tags.length < 3)
+  const isThinContent = !hasRichData(character)
+
+  // 同一キャラ（同anilist_id）の重複ページは正規ページにcanonicalを集約する
+  const canonicalId =
+    (character.anilist_id != null && (await fetchCanonicalCharacterId(character.anilist_id))) || id
+  const canonicalUrl = `https://aniref.net/character/${canonicalId}`
 
   return {
     title: `${titleStr} | アニレフ`,
     description,
-    alternates: { canonical: `https://aniref.net/character/${id}` },
+    alternates: { canonical: canonicalUrl },
     ...(isThinContent && { robots: { index: false, follow: true } }),
     openGraph: {
       title: `${titleStr} | アニレフ`,
       description,
-      url: `https://aniref.net/character/${id}`,
+      url: canonicalUrl,
       images: character.image_url ? [{ url: character.image_url }] : [],
     },
     twitter: {
@@ -57,9 +56,18 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
 
   const anime = character.anime_id ? await fetchAnimeById(character.anime_id) : null
 
+  // 同じ作品の他キャラへの内部リンク（クロール経路を増やしインデックスを促進）
+  const siblings = character.anime_id
+    ? (await fetchCharactersByAnimeId(character.anime_id))
+        .filter((c) => c.character_id !== character.character_id)
+        .slice(0, 12)
+    : []
+
+  // 説明文が無いキャラは既存フィールドから紹介文を生成して表示する
+  const generatedText = buildCharacterDescription(character, anime)
   const description = character.description
     ? `${character.description.slice(0, 100)}…`
-    : `${character.name}のキャラクター情報。${anime ? `登場作品：${anime.title}。` : ''}アニレフで詳細をチェック。`
+    : generatedText.slice(0, 110)
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -67,12 +75,51 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
     name: character.name,
     description,
     url: `https://aniref.net/character/${id}`,
+    ...(character.image_url && { image: character.image_url }),
+    ...(character.gender === '男性' && { gender: 'Male' }),
+    ...(character.gender === '女性' && { gender: 'Female' }),
+    ...(character.height != null && { height: `${character.height} cm` }),
     ...(anime && { worksFor: { '@type': 'TVSeries', name: anime.title } }),
+  }
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://aniref.net' },
+      { '@type': 'ListItem', position: 2, name: 'キャラクター', item: 'https://aniref.net/characters' },
+      ...(anime
+        ? [{ '@type': 'ListItem', position: 3, name: anime.title, item: `https://aniref.net/anime/${anime.anime_id}` }]
+        : []),
+      {
+        '@type': 'ListItem',
+        position: anime ? 4 : 3,
+        name: character.name,
+        item: `https://aniref.net/character/${id}`,
+      },
+    ],
   }
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+
+      <nav aria-label="パンくず" className="max-w-2xl mx-auto px-4 pt-6">
+        <ol className="flex flex-wrap items-center gap-1 text-xs text-gray-400">
+          <li><Link href="/" className="hover:text-pink-500">ホーム</Link></li>
+          <li aria-hidden>/</li>
+          <li><Link href="/characters" className="hover:text-pink-500">キャラクター</Link></li>
+          {anime && (
+            <>
+              <li aria-hidden>/</li>
+              <li><Link href={`/anime/${anime.anime_id}`} className="hover:text-pink-500 truncate max-w-[12rem]">{anime.title}</Link></li>
+            </>
+          )}
+          <li aria-hidden>/</li>
+          <li className="text-gray-600 truncate max-w-[10rem]">{character.name}</li>
+        </ol>
+      </nav>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         {anime && (
@@ -106,7 +153,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
                   { label: '性別', value: character.gender },
                   { label: '誕生日', value: character.birthday },
                   { label: '身長', value: character.height ? `${character.height}cm` : null },
-                  { label: '体重', value: character.weight ? `${character.weight}kg` : null },
+                  { label: '血液型', value: character.blood_type ? `${character.blood_type}型` : null },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-gray-50 rounded-lg p-2.5">
                     <p className="text-xs text-gray-400 mb-0.5">{label}</p>
@@ -133,11 +180,11 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
             </div>
           )}
 
-          {character.description && (
-            <div className="px-5 py-4 border-t border-gray-100">
-              <p className="text-sm text-gray-600 leading-relaxed">{character.description}</p>
-            </div>
-          )}
+          <div className="px-5 py-4 border-t border-gray-100">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {character.description ?? generatedText}
+            </p>
+          </div>
 
           {anime && (
             <div className="px-5 py-3 border-t border-gray-100">
@@ -148,6 +195,30 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
             </div>
           )}
         </div>
+
+        {siblings.length > 0 && anime && (
+          <div className="mt-8">
+            <h2 className="text-base font-bold text-gray-800 mb-3">
+              「{anime.title}」の他のキャラクター
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {siblings.map((c) => (
+                <Link
+                  key={c.character_id}
+                  href={`/character/${c.character_id}`}
+                  className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 p-2 hover:border-pink-300 transition-colors"
+                >
+                  {c.image_url ? (
+                    <img src={c.image_url} alt={c.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0" />
+                  )}
+                  <span className="text-xs font-medium text-gray-700 truncate">{c.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </>
   )

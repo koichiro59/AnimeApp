@@ -8,7 +8,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sitemap": "npx tsx scripts/generateSitemap.ts",
     "gen:image-urls": "npx tsx scripts/generateImageUrlSQL.ts"
   },
   "dependencies": {

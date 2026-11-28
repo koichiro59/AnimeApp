@@ -102,7 +102,8 @@ export const fetchCharactersPreview = async (animeId: string, limit: number = 3)
 export const fetchCharactersByAnimeId = async (animeId: string): Promise<Character[]> => {
   const { data, error } = await supabase
     .from('characters').select('*').eq('anime_id', animeId)
-  if (error) throw error
+  // ビルド/ISR中の一時的なSupabaseエラーでページ生成ごと失敗させない（空扱いで継続）
+  if (error) return []
   return sortCharacters(data as Character[])
 }
 
@@ -111,6 +112,41 @@ export const fetchCharacterById = async (characterId: string): Promise<Character
     .from('characters').select('*').eq('character_id', characterId).single()
   if (error) return null
   return data as Character
+}
+
+// canonical選定・noindex判定で参照する最小フィールド
+type CanonRow = {
+  character_id: string
+  favourites: number | null
+  description: string | null
+  voice_actor: string | null
+  age: number | null
+  height: number | null
+  birthday: string | null
+  tags: string[] | null
+}
+const CANON_COLS = 'character_id, anilist_id, favourites, description, voice_actor, age, height, birthday, tags'
+
+// ページ側 hasRichData と同条件（インデックス対象=情報量のあるページ）
+const rowIsRich = (c: CanonRow): boolean =>
+  !!c.description || !!c.voice_actor || c.age != null || c.height != null || !!c.birthday || (c.tags?.length ?? 0) >= 1
+
+// 重複キャラ群から正規ページを決める。インデックス対象(rich)を最優先し、
+// その中で人気(favourites)降順→id昇順。canonicalがnoindexページを指す矛盾を防ぐ。
+const pickCanonical = (rows: CanonRow[]): string =>
+  [...rows].sort((a, b) => {
+    const r = Number(rowIsRich(b)) - Number(rowIsRich(a))
+    if (r !== 0) return r
+    const f = (b.favourites ?? 0) - (a.favourites ?? 0)
+    if (f !== 0) return f
+    return a.character_id.localeCompare(b.character_id)
+  })[0].character_id
+
+// 同じ anilist_id を持つ重複キャラ（作品違いの同一キャラ）の正規ページを返す。
+export const fetchCanonicalCharacterId = async (anilistId: number): Promise<string | null> => {
+  const { data, error } = await supabase.from('characters').select(CANON_COLS).eq('anilist_id', anilistId)
+  if (error || !data || data.length === 0) return null
+  return pickCanonical(data as CanonRow[])
 }
 
 export const fetchAllCharacterIds = async (): Promise<string[]> => {
@@ -128,22 +164,35 @@ export const fetchAllCharacterIds = async (): Promise<string[]> => {
   return results
 }
 
+// サイトマップに載せるキャラID。ページ側の noindex 判定・canonical と完全に揃える:
+//  - 情報量のある(rich)キャラのみ（image_url は全件埋まりで指標にならない）
+//  - 重複キャラ(同anilist_id)は正規ページ1件に集約
 export const fetchIndexableCharacterIds = async (): Promise<string[]> => {
-  const results: string[] = []
+  const rows: (CanonRow & { anilist_id: number | null })[] = []
   const PAGE = 1000
   let from = 0
   while (true) {
-    const { data, error } = await supabase
-      .from('characters')
-      .select('character_id')
-      .or('description.not.is.null,image_url.not.is.null')
-      .range(from, from + PAGE - 1)
+    const { data, error } = await supabase.from('characters').select(CANON_COLS).range(from, from + PAGE - 1)
     if (error) throw error
-    results.push(...(data ?? []).map((c: { character_id: string }) => c.character_id))
+    rows.push(...((data ?? []) as (CanonRow & { anilist_id: number | null })[]))
     if ((data ?? []).length < PAGE) break
     from += PAGE
   }
-  return results
+
+  // anilist_id ごとにグループ化し、rich な行が1つでもあれば正規ページを採用
+  const groups = new Map<number, (CanonRow & { anilist_id: number | null })[]>()
+  for (const r of rows) {
+    if (r.anilist_id == null) continue
+    const g = groups.get(r.anilist_id)
+    if (g) g.push(r)
+    else groups.set(r.anilist_id, [r])
+  }
+
+  const ids: string[] = []
+  for (const g of groups.values()) {
+    if (g.some(rowIsRich)) ids.push(pickCanonical(g))
+  }
+  return ids
 }
 
 export const fetchCharacterTags = async (): Promise<string[]> => {
